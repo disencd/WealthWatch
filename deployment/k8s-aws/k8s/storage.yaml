@@ -1,0 +1,60 @@
+# Persistent Volume Claim for file uploads
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: splitwise-uploads-pvc
+  namespace: splitwise
+  labels:
+    app: splitwise
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp3
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+# Storage Class for EBS (gp3)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  type: gp3
+  iops: "3000"
+  throughput: "125"
+  fsType: ext4
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+
+---
+# Storage Class for EBS (gp2 - backup)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp2
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  type: gp2
+  fsType: ext4
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+
+---
+# Storage Class for IO-intensive workloads (io1)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: io1
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  type: io1
+  iops: "5000"
+  fsType: ext4
+allowVolumeExpansion: true
+reclaimPolicy: Delete

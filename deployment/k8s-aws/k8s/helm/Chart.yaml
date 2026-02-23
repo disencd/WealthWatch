@@ -1,0 +1,21 @@
+apiVersion: v2
+name: splitwise
+description: A Helm chart for Splitwise expense sharing application
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - expense-sharing
+  - splitwise
+  - go
+  - web-app
+home: https://github.com/your-org/splitwise
+sources:
+  - https://github.com/your-org/splitwise
+maintainers:
+  - name: Your Name
+    email: your.email@example.com
+icon: https://example.com/icon.png
+annotations:
+  category: Application
+  licenses: MIT

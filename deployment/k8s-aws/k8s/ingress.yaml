@@ -1,0 +1,67 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: splitwise-ingress
+  namespace: splitwise
+  annotations:
+    # AWS Load Balancer Controller
+    kubernetes.io/ingress.class: "alb"
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '3'
+    
+    # SSL Configuration
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:ACCOUNT:certificate/CERTIFICATE_ID
+    
+    # WAF Configuration (optional)
+    # alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:us-east-1:ACCOUNT:regional/webacl/WEBACL_ID
+    
+    # Redirect HTTP to HTTPS
+    alb.ingress.kubernetes.io/redirect-http-to-https: "true"
+    
+    # CORS Configuration
+    alb.ingress.kubernetes.io/cors-allow-origin: "'https://splitwise.yourdomain.com,http://localhost:3000'"
+    alb.ingress.kubernetes.io/cors-allow-methods: "'GET, POST, PUT, DELETE, OPTIONS'"
+    alb.ingress.kubernetes.io/cors-allow-headers: "'Content-Type,Authorization,X-Requested-With'"
+    alb.ingress.kubernetes.io/cors-allow-credentials: "'true'"
+    
+    # Rate Limiting
+    alb.ingress.kubernetes.io/rate-limit-requests-per-second: "100"
+    
+    # Stickiness (if needed for sessions)
+    # alb.ingress.kubernetes.io/target-group-attributes: "stickiness.enabled=true,stickiness.type=lb_cookie,stickiness.lb_cookie.duration_seconds=3600"
+    
+    # Access Logs
+    alb.ingress.kubernetes.io/load-balancer-attributes: "access_logs.s3.enabled=true,access_logs.s3.bucket=splitwise-access-logs,access_logs.s3.prefix=alb"
+spec:
+  tls:
+  - hosts:
+    - splitwise.yourdomain.com
+    secretName: splitwise-tls
+  rules:
+  - host: splitwise.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: splitwise-service
+            port:
+              number: 80
+  # Optional: Add non-tls rule for HTTP redirect
+  - host: splitwise.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: splitwise-service
+            port:
+              number: 80

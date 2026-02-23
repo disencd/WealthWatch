@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: splitwise-sa
+  namespace: splitwise
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/splitwise-eks-role
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: splitwise
+  name: splitwise-role
+rules:
+# Allow reading configmaps and secrets
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+# Allow reading pods for service discovery
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+# Allow reading services
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch"]
+# Allow reading events for logging
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: splitwise-rolebinding
+  namespace: splitwise
+subjects:
+- kind: ServiceAccount
+  name: splitwise-sa
+  namespace: splitwise
+roleRef:
+  kind: Role
+  name: splitwise-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# ClusterRole for cluster-wide resources (if needed)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: splitwise-clusterrole
+rules:
+# Allow reading nodes for cluster information
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+# Allow reading persistent volumes
+- apiGroups: [""]
+  resources: ["persistentvolumes", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: splitwise-clusterrolebinding
+subjects:
+- kind: ServiceAccount
+  name: splitwise-sa
+  namespace: splitwise
+roleRef:
+  kind: ClusterRole
+  name: splitwise-clusterrole
+  apiGroup: rbac.authorization.k8s.io
