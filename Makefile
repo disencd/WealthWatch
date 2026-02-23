@@ -14,7 +14,7 @@ help:
 
 # Install dependencies and setup environment
 setup:
-	@echo "Setting up Splitwise..."
+	@echo "Setting up WealthWatch..."
 	@if [ ! -f .env ]; then cp .env.example .env; echo "Created .env file from template"; fi
 	@make deps
 	@echo "Setup complete! Please edit .env file with your database configuration."
@@ -27,12 +27,12 @@ deps:
 
 # Build the application
 build:
-	@echo "Building Splitwise..."
-	go build -o bin/splitwise main.go
+	@echo "Building WealthWatch..."
+	go build -o bin/wealthwatch main.go
 
 # Run the application
 run:
-	@echo "Starting Splitwise..."
+	@echo "Starting WealthWatch..."
 	go run main.go
 
 # Run tests
@@ -78,9 +78,9 @@ migrate:
 # Build Docker image
 docker-build:
 	@echo "Building Docker image..."
-	docker build -t splitwise:latest .
+	docker build -t wealthwatch:latest .
 
 # Run with Docker
 docker-run:
 	@echo "Running with Docker..."
-	docker run -p 8080:8080 --env-file .env splitwise:latest
+	docker run -p 8080:8080 --env-file .env wealthwatch:latest

@@ -1,12 +1,12 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: splitwise-netpol
-  namespace: splitwise
+  name: wealthwatch-netpol
+  namespace: wealthwatch
 spec:
   podSelector:
     matchLabels:
-      app: splitwise
+      app: wealthwatch
   policyTypes:
   - Ingress
   - Egress
@@ -77,7 +77,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: default-deny-all
-  namespace: splitwise
+  namespace: wealthwatch
 spec:
   podSelector: {}
   policyTypes:
@@ -90,11 +90,11 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: allow-monitoring
-  namespace: splitwise
+  namespace: wealthwatch
 spec:
   podSelector:
     matchLabels:
-      app: splitwise
+      app: wealthwatch
   policyTypes:
   - Ingress
   ingress:

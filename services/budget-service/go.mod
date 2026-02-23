@@ -1,4 +1,4 @@
-module splitwise/services/budget-service
+module wealthwatch/services/budget-service
 
 go 1.23
 
@@ -8,4 +8,4 @@ require (
 	gorm.io/gorm v1.25.12
 )
 
-replace splitwise/pkg => ../../pkg
+replace wealthwatch/pkg => ../../pkg

@@ -2,13 +2,13 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: balance-service-config
-  namespace: splitwise
+  namespace: wealthwatch
 data:
   ENVIRONMENT: "development"
   DB_HOST: "postgres-service"
   DB_PORT: "5432"
-  DB_USER: "splitwise"
-  DB_NAME: "splitwise"
+  DB_USER: "wealthwatch"
+  DB_NAME: "wealthwatch"
   DB_SSLMODE: "disable"
   REDIS_HOST: "redis-service"
   REDIS_PORT: "6379"
@@ -22,17 +22,17 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: balance-service-secret
-  namespace: splitwise
+  namespace: wealthwatch
 type: Opaque
 data:
-  DB_PASSWORD: c3BsaXR3aXNlcGFzc3dvcmQ=  # base64: splitwisepassword
+  DB_PASSWORD: c3BsaXR3aXNlcGFzc3dvcmQ=  # base64: wealthwatchpassword
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: balance-service
-  namespace: splitwise
+  namespace: wealthwatch
   labels:
     app: balance-service
 spec:
@@ -47,7 +47,7 @@ spec:
     spec:
       containers:
       - name: balance-service
-        image: splitwise/balance-service:latest
+        image: wealthwatch/balance-service:latest
         ports:
         - containerPort: 8004
         envFrom:
@@ -86,7 +86,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: balance-service
-  namespace: splitwise
+  namespace: wealthwatch
 spec:
   selector:
     app: balance-service

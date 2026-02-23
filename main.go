@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"os"
 
-	"splitwise/config"
-	"splitwise/database"
-	"splitwise/routes"
+	"wealthwatch/config"
+	"wealthwatch/database"
+	"wealthwatch/routes"
 
 	"github.com/gin-gonic/gin"
 )

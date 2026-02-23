@@ -4,11 +4,11 @@ import (
 	"log"
 	"os"
 
-	"splitwise/internal/expense"
-	"splitwise/pkg/config"
-	"splitwise/pkg/database"
-	"splitwise/pkg/middleware"
-	"splitwise/pkg/routes"
+	"wealthwatch/internal/expense"
+	"wealthwatch/pkg/config"
+	"wealthwatch/pkg/database"
+	"wealthwatch/pkg/middleware"
+	"wealthwatch/pkg/routes"
 
 	"github.com/gin-gonic/gin"
 )

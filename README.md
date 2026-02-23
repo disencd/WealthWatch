@@ -1,6 +1,6 @@
-# Splitwise - Expense Sharing Application
+# WealthWatch - Expense Sharing Application
 
-A modern expense-sharing application built with Go and PostgreSQL, inspired by Splitwise.
+A modern expense-sharing application built with Go and PostgreSQL.
 
 ## Features
 
@@ -23,7 +23,7 @@ A modern expense-sharing application built with Go and PostgreSQL, inspired by S
 ## Project Structure
 
 ```
-splitwise/
+wealthwatch/
 ├── main.go              # Application entry point
 ├── go.mod               # Go module file
 ├── .env.example         # Environment variables template
@@ -50,7 +50,7 @@ splitwise/
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd splitwise
+cd wealthwatch
 ```
 
 2. Copy environment variables:
@@ -65,7 +65,7 @@ DB_HOST=localhost
 DB_PORT=5432
 DB_USER=your_db_user
 DB_PASSWORD=your_db_password
-DB_NAME=splitwise_db
+DB_NAME=wealthwatch_db
 
 # JWT Configuration
 JWT_SECRET=your_super_secret_jwt_key_here

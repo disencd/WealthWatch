@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# Kubernetes on AWS Setup Script for Splitwise
+# Kubernetes on AWS Setup Script for WealthWatch
 # This script sets up EKS cluster and required components
 
 set -e
 
 # Configuration
-CLUSTER_NAME="splitwise-cluster"
+CLUSTER_NAME="wealthwatch-cluster"
 REGION="us-east-1"
-NODE_GROUP_NAME="splitwise-nodes"
+NODE_GROUP_NAME="wealthwatch-nodes"
 NODE_TYPE="t3.medium"
 MIN_NODES=2
 MAX_NODES=10
@@ -109,7 +109,7 @@ managedNodeGroups:
     taints: []
     tags:
       Environment: production
-      Application: splitwise
+      Application: wealthwatch
 
 addons:
   - name: vpc-cni
@@ -212,7 +212,7 @@ install_monitoring() {
         --set grafana.adminPassword=admin123 \
         --set grafana.service.type=LoadBalancer \
         --set grafana.ingress.enabled=true \
-        --set grafana.ingress.hosts=grafana.splitwise.local
+        --set grafana.ingress.hosts=grafana.wealthwatch.local
     
     log_info "Prometheus and Grafana installed."
 }
@@ -237,7 +237,7 @@ create_irsa() {
       "Action": "sts:AssumeRoleWithWebIdentity",
       "Condition": {
         "StringEquals": {
-          "${OIDC_PROVIDER}:sub": "system:serviceaccount:splitwise:splitwise-sa"
+          "${OIDC_PROVIDER}:sub": "system:serviceaccount:wealthwatch:wealthwatch-sa"
         }
       }
     }
@@ -246,11 +246,11 @@ create_irsa() {
 EOF
 
     # Create IAM role
-    aws iam create-role --role-name splitwise-eks-role --assume-role-policy-document file://trust-policy.json || true
+    aws iam create-role --role-name wealthwatch-eks-role --assume-role-policy-document file://trust-policy.json || true
     
     # Attach policies
-    aws iam attach-role-policy --role-name splitwise-eks-role --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
-    aws iam attach-role-policy --role-name splitwise-eks-role --policy-arn arn:aws:iam::aws:policy/CloudWatchFullAccess
+    aws iam attach-role-policy --role-name wealthwatch-eks-role --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+    aws iam attach-role-policy --role-name wealthwatch-eks-role --policy-arn arn:aws:iam::aws:policy/CloudWatchFullAccess
     
     log_info "IAM role for service account created."
 }
@@ -264,13 +264,13 @@ setup_ecr_secret() {
     ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
     
     # Create namespace if it doesn't exist
-    kubectl create namespace splitwise --dry-run=client -o yaml | kubectl apply -f -
+    kubectl create namespace wealthwatch --dry-run=client -o yaml | kubectl apply -f -
     
     # Create secret
     kubectl create secret generic ecr-registry-secret \
         --from-file=.dockerconfigjson=/dev/stdin \
         --type=kubernetes.io/dockerconfigjson \
-        -n splitwise \
+        -n wealthwatch \
         <<<$(aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY} && cat ~/.docker/config.json | base64 -w 0)
     
     log_info "ECR registry secret created."
@@ -300,10 +300,10 @@ wait_for_deployment() {
     log_info "Waiting for deployment to be ready..."
     
     # Wait for pods to be ready
-    kubectl wait --for=condition=available --timeout=600s deployment/splitwise -n splitwise
+    kubectl wait --for=condition=available --timeout=600s deployment/wealthwatch -n wealthwatch
     
     # Wait for ingress to be ready
-    kubectl wait --for=condition=ready --timeout=600s ingress/splitwise-ingress -n splitwise
+    kubectl wait --for=condition=ready --timeout=600s ingress/wealthwatch-ingress -n wealthwatch
     
     log_info "Deployment is ready."
 }
@@ -321,7 +321,7 @@ show_info() {
     echo "================================"
     
     # Get load balancer URL
-    INGRESS_URL=$(kubectl get ingress splitwise-ingress -n splitwise -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+    INGRESS_URL=$(kubectl get ingress wealthwatch-ingress -n wealthwatch -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
     echo "Application URL: http://${INGRESS_URL}"
     
     # Get Grafana URL (if monitoring is installed)
@@ -336,11 +336,11 @@ show_info() {
     log_info "Useful Commands:"
     echo "================================"
     echo "Update kubeconfig: aws eks update-kubeconfig --name ${CLUSTER_NAME} --region ${REGION}"
-    echo "Check pods: kubectl get pods -n splitwise"
-    echo "Check services: kubectl get services -n splitwise"
-    echo "Check ingress: kubectl get ingress -n splitwise"
-    echo "Check HPA: kubectl get hpa -n splitwise"
-    echo "Check logs: kubectl logs -f deployment/splitwise -n splitwise"
+    echo "Check pods: kubectl get pods -n wealthwatch"
+    echo "Check services: kubectl get services -n wealthwatch"
+    echo "Check ingress: kubectl get ingress -n wealthwatch"
+    echo "Check HPA: kubectl get hpa -n wealthwatch"
+    echo "Check logs: kubectl logs -f deployment/wealthwatch -n wealthwatch"
 }
 
 # Cleanup function
@@ -352,7 +352,7 @@ cleanup() {
 
 # Main function
 main() {
-    log_info "Starting Kubernetes on AWS setup for Splitwise..."
+    log_info "Starting Kubernetes on AWS setup for WealthWatch..."
     
     check_prerequisites
     create_cluster

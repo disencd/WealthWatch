@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"splitwise/middleware"
-	"splitwise/models"
+	"wealthwatch/middleware"
+	"wealthwatch/models"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -22,13 +22,13 @@ func NewExpenseHandler(db *gorm.DB) *ExpenseHandler {
 }
 
 type CreateExpenseRequest struct {
-	Title       string             `json:"title" binding:"required"`
-	Description string             `json:"description"`
-	Amount      float64            `json:"amount" binding:"required,gt=0"`
-	Currency    string             `json:"currency"`
-	Date        string             `json:"date" binding:"required"`
-	GroupID     *uint              `json:"group_id"`
-	Category    string             `json:"category"`
+	Title       string               `json:"title" binding:"required"`
+	Description string               `json:"description"`
+	Amount      float64              `json:"amount" binding:"required,gt=0"`
+	Currency    string               `json:"currency"`
+	Date        string               `json:"date" binding:"required"`
+	GroupID     *uint                `json:"group_id"`
+	Category    string               `json:"category"`
 	Splits      []CreateSplitRequest `json:"splits" binding:"required,min=1"`
 }
 
@@ -200,19 +200,19 @@ func parseDate(dateStr string) (time.Time, error) {
 	if t, err := time.Parse(time.RFC3339, dateStr); err == nil {
 		return t, nil
 	}
-	
+
 	// Try other common formats
 	formats := []string{
 		"2006-01-02",
 		"2006-01-02T15:04:05Z",
 		"2006-01-02 15:04:05",
 	}
-	
+
 	for _, format := range formats {
 		if t, err := time.Parse(format, dateStr); err == nil {
 			return t, nil
 		}
 	}
-	
+
 	return time.Time{}, errors.New("invalid date format")
 }

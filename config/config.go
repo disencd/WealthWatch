@@ -38,9 +38,9 @@ func GetDatabaseConfig() DatabaseConfig {
 	return DatabaseConfig{
 		Host:     GetEnv("DB_HOST", "localhost"),
 		Port:     GetEnv("DB_PORT", "5432"),
-		User:     GetEnv("DB_USER", "splitwise_user"),
+		User:     GetEnv("DB_USER", "wealthwatch_user"),
 		Password: GetEnv("DB_PASSWORD", ""),
-		DBName:   GetEnv("DB_NAME", "splitwise_db"),
+		DBName:   GetEnv("DB_NAME", "wealthwatch_db"),
 		SSLMode:  GetEnv("DB_SSLMODE", "disable"),
 	}
 }

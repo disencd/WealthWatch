@@ -4,27 +4,27 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: splitwise-postgres
+    container_name: wealthwatch-postgres
     environment:
-      POSTGRES_DB: splitwise
-      POSTGRES_USER: splitwise
-      POSTGRES_PASSWORD: splitwisepassword
+      POSTGRES_DB: wealthwatch
+      POSTGRES_USER: wealthwatch
+      POSTGRES_PASSWORD: wealthwatchpassword
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U splitwise"]
+      test: ["CMD-SHELL", "pg_isready -U wealthwatch"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - splitwise-network
+      - wealthwatch-network
 
   # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: splitwise-redis
+    container_name: wealthwatch-redis
     ports:
       - "6379:6379"
     volumes:
@@ -36,23 +36,23 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - splitwise-network
+      - wealthwatch-network
 
   # Auth Service
   auth-service:
     build:
       context: ../services/auth-service
       dockerfile: Dockerfile
-    container_name: splitwise-auth-service
+    container_name: wealthwatch-auth-service
     ports:
       - "8001:8001"
     environment:
       ENVIRONMENT: development
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_USER: splitwise
-      DB_PASSWORD: splitwisepassword
-      DB_NAME: splitwise
+      DB_USER: wealthwatch
+      DB_PASSWORD: wealthwatchpassword
+      DB_NAME: wealthwatch
       DB_SSLMODE: disable
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -71,23 +71,23 @@ services:
       timeout: 10s
       retries: 3
     networks:
-      - splitwise-network
+      - wealthwatch-network
 
   # Expense Service
   expense-service:
     build:
       context: ../services/expense-service
       dockerfile: Dockerfile
-    container_name: splitwise-expense-service
+    container_name: wealthwatch-expense-service
     ports:
       - "8003:8003"
     environment:
       ENVIRONMENT: development
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_USER: splitwise
-      DB_PASSWORD: splitwisepassword
-      DB_NAME: splitwise
+      DB_USER: wealthwatch
+      DB_PASSWORD: wealthwatchpassword
+      DB_NAME: wealthwatch
       DB_SSLMODE: disable
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -108,23 +108,23 @@ services:
       timeout: 10s
       retries: 3
     networks:
-      - splitwise-network
+      - wealthwatch-network
 
   # Balance Service
   balance-service:
     build:
       context: ../services/balance-service
       dockerfile: Dockerfile
-    container_name: splitwise-balance-service
+    container_name: wealthwatch-balance-service
     ports:
       - "8004:8004"
     environment:
       ENVIRONMENT: development
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_USER: splitwise
-      DB_PASSWORD: splitwisepassword
-      DB_NAME: splitwise
+      DB_USER: wealthwatch
+      DB_PASSWORD: wealthwatchpassword
+      DB_NAME: wealthwatch
       DB_SSLMODE: disable
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -145,12 +145,12 @@ services:
       timeout: 10s
       retries: 3
     networks:
-      - splitwise-network
+      - wealthwatch-network
 
   # API Gateway (Nginx)
   api-gateway:
     image: nginx:alpine
-    container_name: splitwise-api-gateway
+    container_name: wealthwatch-api-gateway
     ports:
       - "8080:80"
     volumes:
@@ -165,7 +165,7 @@ services:
       timeout: 10s
       retries: 3
     networks:
-      - splitwise-network
+      - wealthwatch-network
 
 volumes:
   postgres_data:
@@ -174,5 +174,5 @@ volumes:
     driver: local
 
 networks:
-  splitwise-network:
+  wealthwatch-network:
     driver: bridge

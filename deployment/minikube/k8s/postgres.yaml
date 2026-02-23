@@ -2,10 +2,10 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: postgres-config
-  namespace: splitwise
+  namespace: wealthwatch
 data:
-  POSTGRES_DB: splitwise
-  POSTGRES_USER: splitwise
+  POSTGRES_DB: wealthwatch
+  POSTGRES_USER: wealthwatch
   POSTGRES_HOST: postgres-service
   POSTGRES_PORT: "5432"
 
@@ -14,17 +14,17 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: postgres-secret
-  namespace: splitwise
+  namespace: wealthwatch
 type: Opaque
 data:
-  POSTGRES_PASSWORD: c3BsaXR3aXNlcGFzc3dvcmQ=  # base64 encoded: splitwisepassword
+  POSTGRES_PASSWORD: c3BsaXR3aXNlcGFzc3dvcmQ=  # base64 encoded: wealthwatchpassword
 
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres
-  namespace: splitwise
+  namespace: wealthwatch
 spec:
   serviceName: postgres-service
   replicas: 1
@@ -74,7 +74,7 @@ spec:
             command:
             - pg_isready
             - -U
-            - splitwise
+            - wealthwatch
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
@@ -82,7 +82,7 @@ spec:
             command:
             - pg_isready
             - -U
-            - splitwise
+            - wealthwatch
           initialDelaySeconds: 5
           periodSeconds: 5
   volumeClaimTemplates:
@@ -99,7 +99,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgres-service
-  namespace: splitwise
+  namespace: wealthwatch
 spec:
   selector:
     app: postgres

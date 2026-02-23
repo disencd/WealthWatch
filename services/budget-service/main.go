@@ -1,18 +1,20 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
-	"splitwise/internal/budget"
-	"splitwise/internal/expense"
-	"splitwise/internal/savings"
-	"splitwise/pkg/config"
-	"splitwise/pkg/database"
-	"splitwise/pkg/middleware"
-	"splitwise/pkg/routes"
+	"wealthwatch/internal/budget"
+	"wealthwatch/internal/expense"
+	"wealthwatch/internal/savings"
+	"wealthwatch/pkg/config"
+	"wealthwatch/pkg/database"
+	"wealthwatch/pkg/middleware"
+	"wealthwatch/pkg/routes"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -183,29 +185,29 @@ func seedCategories(db *gorm.DB) error {
 		// Housing sub-categories
 		{CategoryID: 1, Name: string(models.ADU), Description: "Accessory Dwelling Unit expenses", Color: "#FF8C8C"},
 		{CategoryID: 1, Name: string(models.HomeImprovement), Description: "Home improvement and repairs", Color: "#FFB6B6"},
-		
+
 		// Utilities sub-categories
 		{CategoryID: 2, Name: string(models.PGNE), Description: "PG&E utility bills", Color: "#6EDDD6"},
 		{CategoryID: 2, Name: string(models.WaterDept), Description: "Water department bills", Color: "#7EDDD6"},
 		{CategoryID: 2, Name: string(models.InternetPhone), Description: "Internet and phone services", Color: "#5EDDD6"},
-		
+
 		// Food sub-categories
 		{CategoryID: 3, Name: string(models.Grocery), Description: "Regular grocery shopping", Color: "#67C7E1"},
 		{CategoryID: 3, Name: string(models.IndianGrocery), Description: "Indian specialty groceries", Color: "#77D7F1"},
 		{CategoryID: 3, Name: string(models.Restaurant), Description: "Restaurant and dining out", Color: "#57B7D1"},
-		
+
 		// Transportation sub-categories
 		{CategoryID: 4, Name: string(models.Gas), Description: "Gasoline and fuel", Color: "#A6DEC4"},
-		
+
 		// Medical & Healthcare sub-categories
 		{CategoryID: 5, Name: string(models.MedicalExpense), Description: "Medical expenses and healthcare", Color: "#FFEFB7"},
-		
+
 		// DayCare sub-categories
 		{CategoryID: 6, Name: string(models.DayCareExpense), Description: "DayCare fees and expenses", Color: "#EDC0ED"},
-		
+
 		// Church sub-categories
 		{CategoryID: 7, Name: string(models.ChurchExpense), Description: "Church donations and expenses", Color: "#F5B470"},
-		
+
 		// Personal sub-categories (add to Housing for now, or create Personal category)
 		{CategoryID: 1, Name: string(models.Movie), Description: "Movie and entertainment", Color: "#FF9C9C"},
 		{CategoryID: 1, Name: string(models.Camping), Description: "Camping and outdoor activities", Color: "#FFACAC"},

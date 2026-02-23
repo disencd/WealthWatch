@@ -122,7 +122,7 @@ EOF
     fi
     
     # Build Docker image
-    docker build -t "splitwise/$service:latest" .
+    docker build -t "wealthwatch/$service:latest" .
     
     if [ $? -eq 0 ]; then
         log_info "$service built successfully"
@@ -134,8 +134,8 @@ EOF
     cd - > /dev/null
 
     if [ "$USE_MINIKUBE_DOCKER" = "0" ] && [ "$LOAD_TO_MINIKUBE" = "1" ]; then
-        log_info "Loading image into Minikube: splitwise/$service:latest"
-        minikube image load "splitwise/$service:latest"
+        log_info "Loading image into Minikube: wealthwatch/$service:latest"
+        minikube image load "wealthwatch/$service:latest"
     fi
 done
 
@@ -143,4 +143,4 @@ log_info "All services built successfully!"
 
 # Show built images
 log_info "Built Docker images:"
-docker images | grep splitwise
+docker images | grep wealthwatch

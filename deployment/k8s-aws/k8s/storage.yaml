@@ -2,10 +2,10 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: splitwise-uploads-pvc
-  namespace: splitwise
+  name: wealthwatch-uploads-pvc
+  namespace: wealthwatch
   labels:
-    app: splitwise
+    app: wealthwatch
 spec:
   accessModes:
     - ReadWriteOnce

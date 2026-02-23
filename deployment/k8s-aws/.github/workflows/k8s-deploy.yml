@@ -16,9 +16,9 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  CLUSTER_NAME: splitwise-cluster
-  NAMESPACE: splitwise
-  ECR_REPOSITORY: splitwise
+  CLUSTER_NAME: wealthwatch-cluster
+  NAMESPACE: wealthwatch
+  ECR_REPOSITORY: wealthwatch
 
 jobs:
   test:
@@ -111,26 +111,26 @@ jobs:
       - name: Deploy to staging namespace
         run: |
           # Create staging namespace if it doesn't exist
-          kubectl create namespace splitwise-staging --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create namespace wealthwatch-staging --dry-run=client -o yaml | kubectl apply -f -
           
           # Apply manifests with staging overrides
-          helm template splitwise ./deployment/k8s-aws/k8s \
-            --namespace splitwise-staging \
+          helm template wealthwatch ./deployment/k8s-aws/k8s \
+            --namespace wealthwatch-staging \
             --set image.repository=${{ env.IMAGE }} \
             --set image.tag=${{ github.sha }} \
             --set environment=staging \
-            --set ingress.host=staging.splitwise.yourdomain.com | kubectl apply -f -
+            --set ingress.host=staging.wealthwatch.yourdomain.com | kubectl apply -f -
           
           # Wait for deployment
-          kubectl rollout status deployment/splitwise -n splitwise-staging --timeout=600s
+          kubectl rollout status deployment/wealthwatch -n wealthwatch-staging --timeout=600s
 
       - name: Run integration tests
         run: |
           # Wait for ingress to be ready
-          kubectl wait --for=condition=ready --timeout=300s ingress/splitwise-ingress -n splitwise-staging
+          kubectl wait --for=condition=ready --timeout=300s ingress/wealthwatch-ingress -n wealthwatch-staging
           
           # Get ingress URL
-          INGRESS_URL=$(kubectl get ingress splitwise-ingress -n splitwise-staging -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          INGRESS_URL=$(kubectl get ingress wealthwatch-ingress -n wealthwatch-staging -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           
           # Run health check
           curl -f http://$INGRESS_URL/health || exit 1
@@ -161,16 +161,16 @@ jobs:
       - name: Deploy to production
         run: |
           # Backup current deployment
-          kubectl get deployment splitwise -n ${{ env.NAMESPACE }} -o yaml > deployment-backup.yaml
+          kubectl get deployment wealthwatch -n ${{ env.NAMESPACE }} -o yaml > deployment-backup.yaml
           
           # Update deployment with new image
-          kubectl set image deployment/splitwise splitwise=${{ env.IMAGE }} -n ${{ env.NAMESPACE }}
+          kubectl set image deployment/wealthwatch wealthwatch=${{ env.IMAGE }} -n ${{ env.NAMESPACE }}
           
           # Wait for rollout to complete
-          kubectl rollout status deployment/splitwise -n ${{ env.NAMESPACE }} --timeout=600s
+          kubectl rollout status deployment/wealthwatch -n ${{ env.NAMESPACE }} --timeout=600s
           
           # Verify deployment
-          kubectl get pods -n ${{ env.NAMESPACE }} -l app=splitwise
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app=wealthwatch
 
       - name: Run smoke tests
         run: |
@@ -178,7 +178,7 @@ jobs:
           sleep 30
           
           # Get ingress URL
-          INGRESS_URL=$(kubectl get ingress splitwise-ingress -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          INGRESS_URL=$(kubectl get ingress wealthwatch-ingress -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           
           # Run health checks
           curl -f https://$INGRESS_URL/health || exit 1
@@ -195,19 +195,19 @@ jobs:
           echo "✅ Deployment to production successful!"
           # Send Slack notification (optional)
           # curl -X POST -H 'Content-type: application/json' \
-          #   --data '{"text":"✅ Splitwise deployed successfully to production\nVersion: ${{ github.sha }}\nURL: https://splitwise.yourdomain.com"}' \
+          #   --data '{"text":"✅ WealthWatch deployed successfully to production\nVersion: ${{ github.sha }}\nURL: https://wealthwatch.yourdomain.com"}' \
           #   ${{ secrets.SLACK_WEBHOOK }}
 
       - name: Rollback on failure
         if: failure()
         run: |
           echo "❌ Deployment failed! Rolling back..."
-          kubectl rollout undo deployment/splitwise -n ${{ env.NAMESPACE }}
-          kubectl rollout status deployment/splitwise -n ${{ env.NAMESPACE }} --timeout=300s
+          kubectl rollout undo deployment/wealthwatch -n ${{ env.NAMESPACE }}
+          kubectl rollout status deployment/wealthwatch -n ${{ env.NAMESPACE }} --timeout=300s
           
           # Send Slack notification (optional)
           # curl -X POST -H 'Content-type: application/json' \
-          #   --data '{"text":"❌ Splitwise deployment failed and was rolled back\nVersion: ${{ github.sha }}"}' \
+          #   --data '{"text":"❌ WealthWatch deployment failed and was rolled back\nVersion: ${{ github.sha }}"}' \
           #   ${{ secrets.SLACK_WEBHOOK }}
 
   security-scan:
@@ -248,7 +248,7 @@ jobs:
       - name: Check pod health
         run: |
           # Check if all pods are running
-          kubectl get pods -n ${{ env.NAMESPACE }} -l app=splitwise
+          kubectl get pods -n ${{ env.NAMESPACE }} -l app=wealthwatch
           
           # Check HPA status
           kubectl get hpa -n ${{ env.NAMESPACE }}
@@ -259,7 +259,7 @@ jobs:
       - name: Verify external connectivity
         run: |
           # Get ingress URL
-          INGRESS_URL=$(kubectl get ingress splitwise-ingress -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          INGRESS_URL=$(kubectl get ingress wealthwatch-ingress -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           
           # Continuous health check
           for i in {1..10}; do

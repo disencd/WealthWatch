@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"splitwise/pkg/config"
+	"wealthwatch/pkg/config"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -52,7 +52,7 @@ func InitDB(cfg config.DatabaseConfig) (*gorm.DB, error) {
 // RunMigrations runs migrations for a specific service
 func RunMigrations(db *gorm.DB, service string) error {
 	log.Printf("Running migrations for service: %s", service)
-	
+
 	switch service {
 	case "auth":
 		return runAuthMigrations(db)
@@ -74,16 +74,16 @@ func RunMigrations(db *gorm.DB, service string) error {
 func runAuthMigrations(db *gorm.DB) error {
 	// Users table
 	type User struct {
-		ID        uint      `gorm:"primaryKey" json:"id"`
-		FirstName string    `gorm:"not null" json:"first_name"`
-		LastName  string    `gorm:"not null" json:"last_name"`
-		Email     string    `gorm:"uniqueIndex;not null" json:"email"`
-		Password  string    `gorm:"not null" json:"-"`
-		Phone     string    `json:"phone"`
-		Avatar    string    `json:"avatar"`
-		IsActive  bool      `gorm:"default:true" json:"is_active"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
+		ID        uint           `gorm:"primaryKey" json:"id"`
+		FirstName string         `gorm:"not null" json:"first_name"`
+		LastName  string         `gorm:"not null" json:"last_name"`
+		Email     string         `gorm:"uniqueIndex;not null" json:"email"`
+		Password  string         `gorm:"not null" json:"-"`
+		Phone     string         `json:"phone"`
+		Avatar    string         `json:"avatar"`
+		IsActive  bool           `gorm:"default:true" json:"is_active"`
+		CreatedAt time.Time      `json:"created_at"`
+		UpdatedAt time.Time      `json:"updated_at"`
 		DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 	}
 
@@ -104,11 +104,11 @@ func runAuthMigrations(db *gorm.DB) error {
 func runUserMigrations(db *gorm.DB) error {
 	// User profiles table
 	type UserProfile struct {
-		ID          uint   `gorm:"primaryKey" json:"id"`
-		UserID      uint   `gorm:"uniqueIndex;not null" json:"user_id"`
-		Bio         string `json:"bio"`
-		Avatar      string `json:"avatar"`
-		Preferences string `gorm:"type:jsonb" json:"preferences"`
+		ID          uint      `gorm:"primaryKey" json:"id"`
+		UserID      uint      `gorm:"uniqueIndex;not null" json:"user_id"`
+		Bio         string    `json:"bio"`
+		Avatar      string    `json:"avatar"`
+		Preferences string    `gorm:"type:jsonb" json:"preferences"`
 		CreatedAt   time.Time `json:"created_at"`
 		UpdatedAt   time.Time `json:"updated_at"`
 	}
@@ -119,44 +119,44 @@ func runUserMigrations(db *gorm.DB) error {
 func runExpenseMigrations(db *gorm.DB) error {
 	// Categories table
 	type Category struct {
-		ID          uint   `gorm:"primaryKey" json:"id"`
-		Name        string `gorm:"uniqueIndex;not null" json:"name"`
-		Description string `json:"description"`
-		Icon        string `json:"icon"`
-		Color       string `json:"color"`
+		ID          uint      `gorm:"primaryKey" json:"id"`
+		Name        string    `gorm:"uniqueIndex;not null" json:"name"`
+		Description string    `json:"description"`
+		Icon        string    `json:"icon"`
+		Color       string    `json:"color"`
 		CreatedAt   time.Time `json:"created_at"`
 		UpdatedAt   time.Time `json:"updated_at"`
 	}
 
 	// Expenses table
 	type Expense struct {
-		ID          uint      `gorm:"primaryKey" json:"id"`
-		Title       string    `gorm:"not null" json:"title"`
-		Description string    `json:"description"`
-		Amount      float64   `gorm:"not null" json:"amount"`
-		Currency    string    `gorm:"default:'USD'" json:"currency"`
-		Date        time.Time `gorm:"not null" json:"date"`
-		PayerID     uint      `gorm:"not null" json:"payer_id"`
-		CategoryID  *uint     `json:"category_id"`
-		Receipt     string    `json:"receipt"`
-		Status      string    `gorm:"default:'active'" json:"status"`
-		CreatedAt   time.Time `json:"created_at"`
-		UpdatedAt   time.Time `json:"updated_at"`
+		ID          uint           `gorm:"primaryKey" json:"id"`
+		Title       string         `gorm:"not null" json:"title"`
+		Description string         `json:"description"`
+		Amount      float64        `gorm:"not null" json:"amount"`
+		Currency    string         `gorm:"default:'USD'" json:"currency"`
+		Date        time.Time      `gorm:"not null" json:"date"`
+		PayerID     uint           `gorm:"not null" json:"payer_id"`
+		CategoryID  *uint          `json:"category_id"`
+		Receipt     string         `json:"receipt"`
+		Status      string         `gorm:"default:'active'" json:"status"`
+		CreatedAt   time.Time      `json:"created_at"`
+		UpdatedAt   time.Time      `json:"updated_at"`
 		DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
-		Category    *Category `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
+		Category    *Category      `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
 	}
 
 	// Expense splits table
 	type ExpenseSplit struct {
-		ID        uint      `gorm:"primaryKey" json:"id"`
-		ExpenseID uint      `gorm:"not null" json:"expense_id"`
-		UserID    uint      `gorm:"not null" json:"user_id"`
-		Amount    float64   `gorm:"not null" json:"amount"`
-		Percentage float64  `json:"percentage"`
-		Status    string    `gorm:"default:'pending'" json:"status"`
-		CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
-		UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`
-		Expense   Expense   `gorm:"foreignKey:ExpenseID" json:"expense,omitempty"`
+		ID         uint      `gorm:"primaryKey" json:"id"`
+		ExpenseID  uint      `gorm:"not null" json:"expense_id"`
+		UserID     uint      `gorm:"not null" json:"user_id"`
+		Amount     float64   `gorm:"not null" json:"amount"`
+		Percentage float64   `json:"percentage"`
+		Status     string    `gorm:"default:'pending'" json:"status"`
+		CreatedAt  time.Time `gorm:"autoCreateTime" json:"created_at"`
+		UpdatedAt  time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+		Expense    Expense   `gorm:"foreignKey:ExpenseID" json:"expense,omitempty"`
 	}
 
 	return db.AutoMigrate(&Category{}, &Expense{}, &ExpenseSplit{})
@@ -191,17 +191,17 @@ func runBalanceMigrations(db *gorm.DB) error {
 func runSettlementMigrations(db *gorm.DB) error {
 	// Settlements table
 	type Settlement struct {
-		ID            uint      `gorm:"primaryKey" json:"id"`
-		FromUserID    uint      `gorm:"not null" json:"from_user_id"`
-		ToUserID      uint      `gorm:"not null" json:"to_user_id"`
-		Amount        float64   `gorm:"not null" json:"amount"`
-		Currency      string    `gorm:"default:'USD'" json:"currency"`
-		Status        string    `gorm:"default:'pending'" json:"status"`
-		PaymentMethod string    `json:"payment_method"`
-		Notes         string    `json:"notes"`
+		ID            uint       `gorm:"primaryKey" json:"id"`
+		FromUserID    uint       `gorm:"not null" json:"from_user_id"`
+		ToUserID      uint       `gorm:"not null" json:"to_user_id"`
+		Amount        float64    `gorm:"not null" json:"amount"`
+		Currency      string     `gorm:"default:'USD'" json:"currency"`
+		Status        string     `gorm:"default:'pending'" json:"status"`
+		PaymentMethod string     `json:"payment_method"`
+		Notes         string     `json:"notes"`
 		ProcessedAt   *time.Time `json:"processed_at"`
-		CreatedAt     time.Time `gorm:"autoCreateTime" json:"created_at"`
-		UpdatedAt     time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+		CreatedAt     time.Time  `gorm:"autoCreateTime" json:"created_at"`
+		UpdatedAt     time.Time  `gorm:"autoUpdateTime" json:"updated_at"`
 	}
 
 	return db.AutoMigrate(&Settlement{})
@@ -223,11 +223,11 @@ func runNotificationMigrations(db *gorm.DB) error {
 
 	// Notification templates table
 	type NotificationTemplate struct {
-		ID          uint   `gorm:"primaryKey" json:"id"`
-		Type        string `gorm:"uniqueIndex;not null" json:"type"`
-		Subject     string `gorm:"not null" json:"subject"`
-		Body        string `gorm:"not null" json:"body"`
-		Description string `json:"description"`
+		ID          uint      `gorm:"primaryKey" json:"id"`
+		Type        string    `gorm:"uniqueIndex;not null" json:"type"`
+		Subject     string    `gorm:"not null" json:"subject"`
+		Body        string    `gorm:"not null" json:"body"`
+		Description string    `json:"description"`
 		CreatedAt   time.Time `gorm:"autoCreateTime" json:"created_at"`
 		UpdatedAt   time.Time `gorm:"autoUpdateTime" json:"updated_at"`
 	}

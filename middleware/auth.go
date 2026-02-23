@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"splitwise/utils"
+	"wealthwatch/utils"
 
 	"github.com/gin-gonic/gin"
 )

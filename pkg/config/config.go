@@ -10,28 +10,28 @@ import (
 )
 
 type Config struct {
-	Environment   string
-	Database      DatabaseConfig
-	Redis         RedisConfig
-	JWT           JWTConfig
-	AuthService   ServiceConfig
-	UserService   ServiceConfig
-	ExpenseService ServiceConfig
-	BalanceService ServiceConfig
-	SettlementService ServiceConfig
+	Environment         string
+	Database            DatabaseConfig
+	Redis               RedisConfig
+	JWT                 JWTConfig
+	AuthService         ServiceConfig
+	UserService         ServiceConfig
+	ExpenseService      ServiceConfig
+	BalanceService      ServiceConfig
+	SettlementService   ServiceConfig
 	NotificationService ServiceConfig
-	APIGateway    APIGatewayConfig
+	APIGateway          APIGatewayConfig
 }
 
 type DatabaseConfig struct {
-	Host     string
-	Port     string
-	User     string
-	Password string
-	DBName   string
-	SSLMode  string
-	MaxOpenConns int
-	MaxIdleConns int
+	Host            string
+	Port            string
+	User            string
+	Password        string
+	DBName          string
+	SSLMode         string
+	MaxOpenConns    int
+	MaxIdleConns    int
 	ConnMaxLifetime time.Duration
 }
 
@@ -44,8 +44,8 @@ type RedisConfig struct {
 }
 
 type JWTConfig struct {
-	Secret          string
-	ExpiresIn       time.Duration
+	Secret           string
+	ExpiresIn        time.Duration
 	RefreshExpiresIn time.Duration
 }
 
@@ -68,14 +68,14 @@ func LoadConfig() (*Config, error) {
 	cfg := &Config{
 		Environment: getEnv("ENVIRONMENT", "development"),
 		Database: DatabaseConfig{
-			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnv("DB_PORT", "5432"),
-			User:     getEnv("DB_USER", "splitwise"),
-			Password: getEnv("DB_PASSWORD", "password"),
-			DBName:   getEnv("DB_NAME", "splitwise"),
-			SSLMode:  getEnv("DB_SSLMODE", "disable"),
-			MaxOpenConns: getEnvAsInt("DB_MAX_OPEN_CONNS", 25),
-			MaxIdleConns: getEnvAsInt("DB_MAX_IDLE_CONNS", 5),
+			Host:            getEnv("DB_HOST", "localhost"),
+			Port:            getEnv("DB_PORT", "5432"),
+			User:            getEnv("DB_USER", "wealthwatch"),
+			Password:        getEnv("DB_PASSWORD", "password"),
+			DBName:          getEnv("DB_NAME", "wealthwatch"),
+			SSLMode:         getEnv("DB_SSLMODE", "disable"),
+			MaxOpenConns:    getEnvAsInt("DB_MAX_OPEN_CONNS", 25),
+			MaxIdleConns:    getEnvAsInt("DB_MAX_IDLE_CONNS", 5),
 			ConnMaxLifetime: getEnvAsDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
 		},
 		Redis: RedisConfig{
@@ -86,8 +86,8 @@ func LoadConfig() (*Config, error) {
 			PoolSize: getEnvAsInt("REDIS_POOL_SIZE", 10),
 		},
 		JWT: JWTConfig{
-			Secret:          getEnv("JWT_SECRET", "your-super-secret-jwt-key"),
-			ExpiresIn:       getEnvAsDuration("JWT_EXPIRES_IN", 24*time.Hour),
+			Secret:           getEnv("JWT_SECRET", "your-super-secret-jwt-key"),
+			ExpiresIn:        getEnvAsDuration("JWT_EXPIRES_IN", 24*time.Hour),
 			RefreshExpiresIn: getEnvAsDuration("JWT_REFRESH_EXPIRES_IN", 7*24*time.Hour),
 		},
 		AuthService: ServiceConfig{

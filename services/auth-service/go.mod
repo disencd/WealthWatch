@@ -1,4 +1,4 @@
-module splitwise/services/auth-service
+module wealthwatch/services/auth-service
 
 go 1.21
 
@@ -9,7 +9,7 @@ require (
 	golang.org/x/crypto v0.13.0
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.4
-	splitwise/pkg v0.0.0
+	wealthwatch/pkg v0.0.0
 )
 
-replace splitwise/pkg => ../../pkg
+replace wealthwatch/pkg => ../../pkg

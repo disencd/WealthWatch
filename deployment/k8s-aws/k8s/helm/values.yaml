@@ -1,4 +1,4 @@
-# Default values for splitwise Helm chart
+# Default values for wealthwatch Helm chart
 # This is a YAML-formatted file.
 
 # Global settings
@@ -10,7 +10,7 @@ global:
 # Application image settings
 image:
   registry: YOUR_ECR_REPO
-  repository: splitwise
+  repository: wealthwatch
   tag: "latest"
   pullPolicy: Always
   pullSecrets: []
@@ -56,14 +56,14 @@ ingress:
     alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
     alb.ingress.kubernetes.io/redirect-http-to-https: "true"
   hosts:
-    - host: splitwise.yourdomain.com
+    - host: wealthwatch.yourdomain.com
       paths:
         - path: /
           pathType: Prefix
   tls:
-    - secretName: splitwise-tls
+    - secretName: wealthwatch-tls
       hosts:
-        - splitwise.yourdomain.com
+        - wealthwatch.yourdomain.com
 
 # Environment variables
 env:
@@ -74,8 +74,8 @@ env:
   
   # Database configuration
   DB_PORT: "5432"
-  DB_NAME: "splitwise_prod"
-  DB_USER: "splitwise"
+  DB_NAME: "wealthwatch_prod"
+  DB_USER: "wealthwatch"
   DB_SSLMODE: "require"
   
   # Redis configuration
@@ -85,7 +85,7 @@ env:
   JWT_EXPIRES_IN: "24h"
   
   # CORS configuration
-  CORS_ALLOWED_ORIGINS: "https://splitwise.yourdomain.com"
+  CORS_ALLOWED_ORIGINS: "https://wealthwatch.yourdomain.com"
   
   # Rate limiting
   RATE_LIMIT_REQUESTS_PER_MINUTE: "100"
@@ -142,8 +142,8 @@ podSecurityContext:
 serviceAccount:
   create: true
   annotations: {}
-    # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/splitwise-eks-role
-  name: "splitwise-sa"
+    # eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/wealthwatch-eks-role
+  name: "wealthwatch-sa"
 
 # RBAC
 rbac:
@@ -229,7 +229,7 @@ affinity:
               - key: app
                 operator: In
                 values:
-                  - splitwise
+                  - wealthwatch
           topologyKey: kubernetes.io/hostname
 
 # Pod annotations
@@ -268,7 +268,7 @@ vpa:
   updateMode: "Auto"
   resourcePolicy:
     containerPolicies:
-      - containerName: splitwise
+      - containerName: wealthwatch
         maxAllowed:
           cpu: 2
           memory: 2Gi

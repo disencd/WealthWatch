@@ -1,6 +1,6 @@
 # Kubernetes on AWS Deployment Guide
 
-This guide covers deploying the Splitwise application to AWS using Amazon EKS (Elastic Kubernetes Service) with production-ready configurations.
+This guide covers deploying the WealthWatch application to AWS using Amazon EKS (Elastic Kubernetes Service) with production-ready configurations.
 
 ## Architecture Overview
 
@@ -43,7 +43,7 @@ This guide covers deploying the Splitwise application to AWS using Amazon EKS (E
 ```bash
 # Create cluster with eksctl
 eksctl create cluster \
-  --name splitwise-cluster \
+  --name wealthwatch-cluster \
   --region us-east-1 \
   --version 1.28 \
   --nodegroup-name standard-workers \
@@ -64,7 +64,7 @@ helm repo update
 # Install the controller
 helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
   -n kube-system \
-  --set clusterName=splitwise-cluster \
+  --set clusterName=wealthwatch-cluster \
   --set serviceAccount.create=true \
   --set serviceAccount.name=aws-load-balancer-controller
 ```
@@ -98,7 +98,7 @@ The EKS cluster creates a dedicated VPC with:
 #### Cluster Creation
 ```bash
 eksctl create cluster \
-  --name splitwise-cluster \
+  --name wealthwatch-cluster \
   --region us-east-1 \
   --version 1.28 \
   --with-oidc \
@@ -109,7 +109,7 @@ eksctl create cluster \
 ```bash
 # Create node group for application pods
 eksctl create nodegroup \
-  --cluster splitwise-cluster \
+  --cluster wealthwatch-cluster \
   --region us-east-1 \
   --name app-nodes \
   --node-type t3.medium \
@@ -125,21 +125,21 @@ eksctl create nodegroup \
 ```bash
 # Create RDS subnet group
 aws rds create-db-subnet-group \
-  --db-subnet-group-name splitwise-db-subnet-group \
+  --db-subnet-group-name wealthwatch-db-subnet-group \
   --subnet-ids subnet-12345 subnet-67890 \
-  --db-subnet-group-description "Subnet group for Splitwise RDS"
+  --db-subnet-group-description "Subnet group for WealthWatch RDS"
 
 # Create RDS instance
 aws rds create-db-instance \
-  --db-instance-identifier splitwise-db \
+  --db-instance-identifier wealthwatch-db \
   --db-instance-class db.t3.medium \
   --engine postgres \
   --engine-version 15.4 \
-  --master-username splitwise \
+  --master-username wealthwatch \
   --master-user-password your-secure-password \
   --allocated-storage 100 \
   --vpc-security-group-ids sg-12345 \
-  --db-subnet-group-name splitwise-db-subnet-group \
+  --db-subnet-group-name wealthwatch-db-subnet-group \
   --backup-retention-period 30 \
   --multi-az \
   --storage-encrypted
@@ -149,19 +149,19 @@ aws rds create-db-instance \
 ```bash
 # Create Redis subnet group
 aws elasticache create-cache-subnet-group \
-  --cache-subnet-group-name splitwise-redis-subnet-group \
-  --cache-subnet-group-description "Subnet group for Splitwise Redis" \
+  --cache-subnet-group-name wealthwatch-redis-subnet-group \
+  --cache-subnet-group-description "Subnet group for WealthWatch Redis" \
   --subnet-ids subnet-12345 subnet-67890
 
 # Create Redis cluster
 aws elasticache create-replication-group \
-  --replication-group-id splitwise-redis \
-  --replication-group-description "Splitwise Redis cluster" \
+  --replication-group-id wealthwatch-redis \
+  --replication-group-description "WealthWatch Redis cluster" \
   --num-cache-clusters 2 \
   --engine redis \
   --cache-node-type cache.t3.micro \
   --security-group-ids sg-12345 \
-  --cache-subnet-group-name splitwise-redis-subnet-group \
+  --cache-subnet-group-name wealthwatch-redis-subnet-group \
   --at-rest-encryption-enabled \
   --transit-encryption-enabled \
   --auth-token your-redis-token
@@ -174,7 +174,7 @@ aws elasticache create-replication-group \
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: splitwise
+  name: wealthwatch
 ```
 
 #### ConfigMaps
@@ -182,17 +182,17 @@ metadata:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: splitwise-config
-  namespace: splitwise
+  name: wealthwatch-config
+  namespace: wealthwatch
 data:
   GIN_MODE: "release"
   PORT: "8080"
-  DB_HOST: "splitwise-db.xxxx.us-east-1.rds.amazonaws.com"
+  DB_HOST: "wealthwatch-db.xxxx.us-east-1.rds.amazonaws.com"
   DB_PORT: "5432"
-  DB_NAME: "splitwise_prod"
-  DB_USER: "splitwise"
+  DB_NAME: "wealthwatch_prod"
+  DB_USER: "wealthwatch"
   DB_SSLMODE: "require"
-  REDIS_HOST: "splitwise-redis.xxxxx.clustercfg.use1.cache.amazonaws.com"
+  REDIS_HOST: "wealthwatch-redis.xxxxx.clustercfg.use1.cache.amazonaws.com"
   REDIS_PORT: "6379"
 ```
 
@@ -201,8 +201,8 @@ data:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: splitwise-secrets
-  namespace: splitwise
+  name: wealthwatch-secrets
+  namespace: wealthwatch
 type: Opaque
 data:
   DB_PASSWORD: <base64-encoded-password>
@@ -215,28 +215,28 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: splitwise
-  namespace: splitwise
+  name: wealthwatch
+  namespace: wealthwatch
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: splitwise
+      app: wealthwatch
   template:
     metadata:
       labels:
-        app: splitwise
+        app: wealthwatch
     spec:
       containers:
-      - name: splitwise
-        image: your-ecr-repo/splitwise:latest
+      - name: wealthwatch
+        image: your-ecr-repo/wealthwatch:latest
         ports:
         - containerPort: 8080
         envFrom:
         - configMapRef:
-            name: splitwise-config
+            name: wealthwatch-config
         - secretRef:
-            name: splitwise-secrets
+            name: wealthwatch-secrets
         resources:
           requests:
             memory: "256Mi"
@@ -263,11 +263,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: splitwise-service
-  namespace: splitwise
+  name: wealthwatch-service
+  namespace: wealthwatch
 spec:
   selector:
-    app: splitwise
+    app: wealthwatch
   ports:
   - protocol: TCP
     port: 80
@@ -280,8 +280,8 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: splitwise-ingress
-  namespace: splitwise
+  name: wealthwatch-ingress
+  namespace: wealthwatch
   annotations:
     kubernetes.io/ingress.class: "alb"
     alb.ingress.kubernetes.io/scheme: internet-facing
@@ -291,17 +291,17 @@ metadata:
 spec:
   tls:
   - hosts:
-    - splitwise.yourdomain.com
-    secretName: splitwise-tls
+    - wealthwatch.yourdomain.com
+    secretName: wealthwatch-tls
   rules:
-  - host: splitwise.yourdomain.com
+  - host: wealthwatch.yourdomain.com
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: splitwise-service
+            name: wealthwatch-service
             port:
               number: 80
 ```
@@ -311,13 +311,13 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: splitwise-hpa
-  namespace: splitwise
+  name: wealthwatch-hpa
+  namespace: wealthwatch
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: splitwise
+    name: wealthwatch
   minReplicas: 2
   maxReplicas: 10
   metrics:
@@ -339,7 +339,7 @@ spec:
 
 ```bash
 # Create namespace
-kubectl create namespace splitwise
+kubectl create namespace wealthwatch
 
 # Apply ConfigMaps and Secrets
 kubectl apply -f k8s/configmap.yaml
@@ -354,9 +354,9 @@ kubectl apply -f k8s/ingress.yaml
 kubectl apply -f k8s/hpa.yaml
 
 # Check deployment status
-kubectl get pods -n splitwise
-kubectl get services -n splitwise
-kubectl get ingress -n splitwise
+kubectl get pods -n wealthwatch
+kubectl get services -n wealthwatch
+kubectl get ingress -n wealthwatch
 ```
 
 ---
@@ -413,20 +413,20 @@ jobs:
           aws-region: us-east-1
       
       - name: Update kubeconfig
-        run: aws eks update-kubeconfig --name splitwise-cluster --region us-east-1
+        run: aws eks update-kubeconfig --name wealthwatch-cluster --region us-east-1
       
       - name: Build and push Docker image
         run: |
           # Build and push to ECR
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $ECR_REGISTRY
-          docker build -t $ECR_REGISTRY/splitwise:$GITHUB_SHA .
-          docker push $ECR_REGISTRY/splitwise:$GITHUB_SHA
+          docker build -t $ECR_REGISTRY/wealthwatch:$GITHUB_SHA .
+          docker push $ECR_REGISTRY/wealthwatch:$GITHUB_SHA
       
       - name: Deploy to Kubernetes
         run: |
           # Update image in deployment
-          kubectl set image deployment/splitwise splitwise=$ECR_REGISTRY/splitwise:$GITHUB_SHA -n splitwise
-          kubectl rollout status deployment/splitwise -n splitwise
+          kubectl set image deployment/wealthwatch wealthwatch=$ECR_REGISTRY/wealthwatch:$GITHUB_SHA -n wealthwatch
+          kubectl rollout status deployment/wealthwatch -n wealthwatch
 ```
 
 ---
@@ -438,12 +438,12 @@ jobs:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: splitwise-netpol
-  namespace: splitwise
+  name: wealthwatch-netpol
+  namespace: wealthwatch
 spec:
   podSelector:
     matchLabels:
-      app: splitwise
+      app: wealthwatch
   policyTypes:
   - Ingress
   - Egress
@@ -472,7 +472,7 @@ spec:
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
-  name: splitwise-psp
+  name: wealthwatch-psp
 spec:
   privileged: false
   allowPrivilegeEscalation: false
@@ -498,14 +498,14 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: splitwise-sa
-  namespace: splitwise
+  name: wealthwatch-sa
+  namespace: wealthwatch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: splitwise-role
-  namespace: splitwise
+  name: wealthwatch-role
+  namespace: wealthwatch
 rules:
 - apiGroups: [""]
   resources: ["configmaps", "secrets"]
@@ -514,15 +514,15 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: splitwise-rolebinding
-  namespace: splitwise
+  name: wealthwatch-rolebinding
+  namespace: wealthwatch
 subjects:
 - kind: ServiceAccount
-  name: splitwise-sa
-  namespace: splitwise
+  name: wealthwatch-sa
+  namespace: wealthwatch
 roleRef:
   kind: Role
-  name: splitwise-role
+  name: wealthwatch-role
   apiGroup: rbac.authorization.k8s.io
 ```
 
@@ -539,7 +539,7 @@ roleRef:
 ### 2. etcd Backups
 ```bash
 # Create etcd backup
-eksctl utils install-csi-driver --name splitwise-cluster --region us-east-1
+eksctl utils install-csi-driver --name wealthwatch-cluster --region us-east-1
 ```
 
 ### 3. Application State Backup
@@ -562,7 +562,7 @@ eksctl utils install-csi-driver --name splitwise-cluster --region us-east-1
 helm repo add autoscaler https://kubernetes.github.io/autoscaler
 helm install cluster-autoscaler autoscaler/cluster-autoscaler \
   -n kube-system \
-  --set autoDiscovery.clusterName=splitwise-cluster \
+  --set autoDiscovery.clusterName=wealthwatch-cluster \
   --set awsRegion=us-east-1
 ```
 
@@ -570,7 +570,7 @@ helm install cluster-autoscaler autoscaler/cluster-autoscaler \
 ```bash
 # Create node group with spot instances
 eksctl create nodegroup \
-  --cluster splitwise-cluster \
+  --cluster wealthwatch-cluster \
   --region us-east-1 \
   --name spot-nodes \
   --node-type t3.medium \
@@ -589,26 +589,26 @@ eksctl create nodegroup \
 
 1. **Pod Not Starting**
    ```bash
-   kubectl describe pod <pod-name> -n splitwise
-   kubectl logs <pod-name> -n splitwise
+   kubectl describe pod <pod-name> -n wealthwatch
+   kubectl logs <pod-name> -n wealthwatch
    ```
 
 2. **Service Not Accessible**
    ```bash
-   kubectl get svc -n splitwise
-   kubectl describe svc splitwise-service -n splitwise
+   kubectl get svc -n wealthwatch
+   kubectl describe svc wealthwatch-service -n wealthwatch
    ```
 
 3. **Ingress Not Working**
    ```bash
-   kubectl get ingress -n splitwise
-   kubectl describe ingress splitwise-ingress -n splitwise
+   kubectl get ingress -n wealthwatch
+   kubectl describe ingress wealthwatch-ingress -n wealthwatch
    ```
 
 4. **HPA Not Scaling**
    ```bash
-   kubectl get hpa -n splitwise
-   kubectl describe hpa splitwise-hpa -n splitwise
+   kubectl get hpa -n wealthwatch
+   kubectl describe hpa wealthwatch-hpa -n wealthwatch
    ```
 
 ### Monitoring Commands
@@ -619,10 +619,10 @@ kubectl get pods -A
 
 # Check resource usage
 kubectl top nodes
-kubectl top pods -n splitwise
+kubectl top pods -n wealthwatch
 
 # Check events
-kubectl get events -n splitwise --sort-by=.metadata.creationTimestamp
+kubectl get events -n wealthwatch --sort-by=.metadata.creationTimestamp
 ```
 
 ---
@@ -644,4 +644,4 @@ kubectl get events -n splitwise --sort-by=.metadata.creationTimestamp
 - Use Route 53 for DNS failover
 - Implement cross-region data replication
 
-This Kubernetes approach provides excellent scalability, resilience, and operational efficiency for your Splitwise application on AWS.
+This Kubernetes approach provides excellent scalability, resilience, and operational efficiency for your WealthWatch application on AWS.

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"splitwise/config"
+	"wealthwatch/config"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"

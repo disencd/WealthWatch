@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"splitwise/config"
+	"wealthwatch/config"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -43,7 +43,7 @@ func GenerateToken(userID uint, email string, familyID uint, role string) (strin
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24 * 7)), // 7 days
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "splitwise",
+			Issuer:    "wealthwatch",
 		},
 	}
 

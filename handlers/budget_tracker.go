@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"splitwise/middleware"
-	"splitwise/models"
+	"wealthwatch/middleware"
+	"wealthwatch/models"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -132,12 +132,12 @@ func (h *BudgetTrackerHandler) CreateSubCategory(c *gin.Context) {
 }
 
 type CreateBudgetRequest struct {
-	CategoryID    *uint              `json:"category_id"`
-	SubCategoryID *uint              `json:"sub_category_id"`
+	CategoryID    *uint               `json:"category_id"`
+	SubCategoryID *uint               `json:"sub_category_id"`
 	Period        models.BudgetPeriod `json:"period" binding:"required"`
-	Year          int                `json:"year" binding:"required"`
-	Month         *int               `json:"month"`
-	Amount        float64            `json:"amount" binding:"required,gt=0"`
+	Year          int                 `json:"year" binding:"required"`
+	Month         *int                `json:"month"`
+	Amount        float64             `json:"amount" binding:"required,gt=0"`
 }
 
 func (h *BudgetTrackerHandler) ListBudgets(c *gin.Context) {
@@ -214,15 +214,15 @@ func (h *BudgetTrackerHandler) CreateBudget(c *gin.Context) {
 	}
 
 	budget := models.Budget{
-		FamilyID: familyID,
+		FamilyID:        familyID,
 		CreatedByUserID: userID,
-		CategoryID: req.CategoryID,
-		SubCategoryID: req.SubCategoryID,
-		Period: req.Period,
-		Year: req.Year,
-		Month: req.Month,
-		Amount: req.Amount,
-		IsActive: true,
+		CategoryID:      req.CategoryID,
+		SubCategoryID:   req.SubCategoryID,
+		Period:          req.Period,
+		Year:            req.Year,
+		Month:           req.Month,
+		Amount:          req.Amount,
+		IsActive:        true,
 	}
 
 	if err := h.db.Create(&budget).Error; err != nil {
@@ -287,17 +287,17 @@ func (h *BudgetTrackerHandler) CreateBudgetExpense(c *gin.Context) {
 	}
 
 	exp := models.BudgetExpense{
-		FamilyID: familyID,
+		FamilyID:        familyID,
 		CreatedByUserID: userID,
-		CategoryID: req.CategoryID,
-		SubCategoryID: req.SubCategoryID,
-		Title: req.Title,
-		Description: req.Description,
-		Amount: req.Amount,
-		Currency: currency,
-		Date: date,
-		Merchant: req.Merchant,
-		Notes: req.Notes,
+		CategoryID:      req.CategoryID,
+		SubCategoryID:   req.SubCategoryID,
+		Title:           req.Title,
+		Description:     req.Description,
+		Amount:          req.Amount,
+		Currency:        currency,
+		Date:            date,
+		Merchant:        req.Merchant,
+		Notes:           req.Notes,
 	}
 
 	if err := h.db.Create(&exp).Error; err != nil {
@@ -361,7 +361,7 @@ func (h *BudgetTrackerHandler) MonthlySummary(c *gin.Context) {
 	}
 
 	yearStr := c.Query("year")
-	monthStr := c.Query("month")	
+	monthStr := c.Query("month")
 	if yearStr == "" || monthStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "year and month are required"})
 		return
@@ -414,11 +414,11 @@ func (h *BudgetTrackerHandler) MonthlySummary(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"year": yearStr,
-		"month": monthStr,
-		"total_spent": totalSpent,
-		"by_category": catTotals,
+		"year":           yearStr,
+		"month":          monthStr,
+		"total_spent":    totalSpent,
+		"by_category":    catTotals,
 		"by_subcategory": subTotals,
-		"generated_at": time.Now().UTC(),
+		"generated_at":   time.Now().UTC(),
 	})
 }

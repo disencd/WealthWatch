@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: splitwise
-  namespace: splitwise
+  name: wealthwatch
+  namespace: wealthwatch
   labels:
-    app: splitwise
+    app: wealthwatch
     version: v1
 spec:
   replicas: 3
@@ -15,25 +15,25 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: splitwise
+      app: wealthwatch
   template:
     metadata:
       labels:
-        app: splitwise
+        app: wealthwatch
         version: v1
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9090"
         prometheus.io/path: "/metrics"
     spec:
-      serviceAccountName: splitwise-sa
+      serviceAccountName: wealthwatch-sa
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
         fsGroup: 2000
       containers:
-      - name: splitwise
-        image: YOUR_ECR_REPO/splitwise:latest
+      - name: wealthwatch
+        image: YOUR_ECR_REPO/wealthwatch:latest
         imagePullPolicy: Always
         ports:
         - name: http
@@ -44,9 +44,9 @@ spec:
           protocol: TCP
         envFrom:
         - configMapRef:
-            name: splitwise-config
+            name: wealthwatch-config
         - secretRef:
-            name: splitwise-secrets
+            name: wealthwatch-secrets
         resources:
           requests:
             memory: "256Mi"
@@ -97,7 +97,7 @@ spec:
         emptyDir: {}
       - name: uploads
         persistentVolumeClaim:
-          claimName: splitwise-uploads-pvc
+          claimName: wealthwatch-uploads-pvc
       imagePullSecrets:
       - name: ecr-registry-secret
       nodeSelector:
@@ -117,5 +117,5 @@ spec:
                 - key: app
                   operator: In
                   values:
-                  - splitwise
+                  - wealthwatch
               topologyKey: kubernetes.io/hostname

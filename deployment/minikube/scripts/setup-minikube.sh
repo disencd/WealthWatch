@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Minikube setup script for Splitwise microservices
+# Minikube setup script for WealthWatch microservices
 set -e
 
 # Colors for output
@@ -125,7 +125,7 @@ setup_docker_env() {
 create_namespace() {
     log_info "Creating Kubernetes namespace..."
     
-    kubectl create namespace splitwise --dry-run=client -o yaml | kubectl apply -f -
+    kubectl create namespace wealthwatch --dry-run=client -o yaml | kubectl apply -f -
     
     log_info "Namespace created successfully."
 }
@@ -162,13 +162,13 @@ show_status() {
     echo "  Access Dashboard: minikube dashboard"
     echo "  SSH into Minikube: minikube ssh"
     echo "  View logs: minikube logs"
-    echo "  Get services: kubectl get services -n splitwise"
-    echo "  Get pods: kubectl get pods -n splitwise"
+    echo "  Get services: kubectl get services -n wealthwatch"
+    echo "  Get pods: kubectl get pods -n wealthwatch"
 }
 
 # Main function
 main() {
-    log_info "Setting up Minikube for Splitwise microservices..."
+    log_info "Setting up Minikube for WealthWatch microservices..."
     
     check_prerequisites
     start_minikube

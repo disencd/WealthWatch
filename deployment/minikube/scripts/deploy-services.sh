@@ -48,11 +48,11 @@ kubectl apply --validate=false -f k8s/redis.yaml
 
 # Wait for database to be ready
 log_info "Waiting for PostgreSQL to be ready..."
-kubectl wait --for=condition=ready --timeout=300s pod -l app=postgres -n splitwise
+kubectl wait --for=condition=ready --timeout=300s pod -l app=postgres -n wealthwatch
 
 # Wait for Redis to be ready
 log_info "Waiting for Redis to be ready..."
-kubectl wait --for=condition=ready --timeout=300s pod -l app=redis -n splitwise
+kubectl wait --for=condition=ready --timeout=300s pod -l app=redis -n wealthwatch
 
 # Apply services
 services=(
@@ -66,7 +66,7 @@ for service in "${services[@]}"; do
     kubectl apply --validate=false -f "k8s/$service.yaml"
     
     # Wait for service to be ready
-    kubectl wait --for=condition=available --timeout=300s deployment/$service -n splitwise
+    kubectl wait --for=condition=available --timeout=300s deployment/$service -n wealthwatch
 done
 
 # Apply API Gateway
@@ -74,17 +74,17 @@ log_info "Deploying API Gateway..."
 kubectl apply --validate=false -f k8s/api-gateway.yaml
 
 # Wait for API Gateway to be ready
-kubectl wait --for=condition=available --timeout=300s deployment/api-gateway -n splitwise
+kubectl wait --for=condition=available --timeout=300s deployment/api-gateway -n wealthwatch
 
 # Show deployment status
 log_info "Deployment completed successfully!"
 echo ""
-log_info "Pods in splitwise namespace:"
-kubectl get pods -n splitwise
+log_info "Pods in wealthwatch namespace:"
+kubectl get pods -n wealthwatch
 
 echo ""
-log_info "Services in splitwise namespace:"
-kubectl get services -n splitwise
+log_info "Services in wealthwatch namespace:"
+kubectl get services -n wealthwatch
 
 echo ""
 log_info "Access Information:"
@@ -93,7 +93,7 @@ echo "================================"
 # Get API Gateway URL
 if command -v minikube &> /dev/null; then
     MINIKUBE_IP=$(minikube ip)
-    API_GATEWAY_PORT=$(kubectl get service api-gateway -n splitwise -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "8080")
+    API_GATEWAY_PORT=$(kubectl get service api-gateway -n wealthwatch -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "8080")
     
     echo "API Gateway: http://$MINIKUBE_IP:$API_GATEWAY_PORT"
     echo ""
@@ -107,8 +107,8 @@ if command -v minikube &> /dev/null; then
     echo "  Redis: redis-service:6379"
     echo ""
     echo "Useful Commands:"
-    echo "  kubectl logs -f deployment/auth-service -n splitwise"
-    echo "  kubectl port-forward service/api-gateway 8080:8080 -n splitwise"
+    echo "  kubectl logs -f deployment/auth-service -n wealthwatch"
+    echo "  kubectl port-forward service/api-gateway 8080:8080 -n wealthwatch"
     echo "  minikube dashboard"
 else
     echo "Minikube not found. Please check service URLs manually."
@@ -128,7 +128,7 @@ fi
 # Test individual services
 for service in "${services[@]}"; do
     service_name=$(echo $service | sed 's/-service//')
-    if kubectl exec -n splitwise deployment/$service -- curl -f "http://localhost:8001/health" &> /dev/null; then
+    if kubectl exec -n wealthwatch deployment/$service -- curl -f "http://localhost:8001/health" &> /dev/null; then
         log_info "$service_name is healthy"
     else
         log_warn "$service_name health check failed"

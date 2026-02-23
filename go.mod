@@ -1,4 +1,4 @@
-module splitwise
+module wealthwatch
 
 go 1.23
 

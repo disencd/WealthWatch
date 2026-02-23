@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"splitwise/middleware"
-	"splitwise/models"
-	"splitwise/utils"
+	"wealthwatch/middleware"
+	"wealthwatch/models"
+	"wealthwatch/utils"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

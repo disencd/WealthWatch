@@ -8,10 +8,10 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: splitwise
-  ECS_CLUSTER: splitwise-cluster
-  ECS_SERVICE: splitwise-service
-  CONTAINER_NAME: splitwise
+  ECR_REPOSITORY: wealthwatch
+  ECS_CLUSTER: wealthwatch-cluster
+  ECS_SERVICE: wealthwatch-service
+  CONTAINER_NAME: wealthwatch
 
 jobs:
   test:
@@ -40,7 +40,7 @@ jobs:
         run: go test -v ./...
 
       - name: Build application
-        run: go build -o bin/splitwise main.go
+        run: go build -o bin/wealthwatch main.go
 
   build-and-deploy:
     needs: test
@@ -97,10 +97,10 @@ jobs:
           # Connect to ECS container and run migrations
           aws ecs run-task \
             --cluster ${{ env.ECS_CLUSTER }} \
-            --task-definition splitwise-migrate \
+            --task-definition wealthwatch-migrate \
             --launch-type FARGATE \
             --network-configuration "awsvpcConfiguration={subnets=[subnet-12345,subnet-67890],securityGroups=[sg-12345],assignPublicIp=ENABLED}" \
-            --overrides '{"containerOverrides":[{"name":"splitwise","command":["./migrate"]}]}'
+            --overrides '{"containerOverrides":[{"name":"wealthwatch","command":["./migrate"]}]}'
 
       - name: Notify deployment status
         if: always()
@@ -108,11 +108,11 @@ jobs:
           if [ "${{ job.status }}" == "success" ]; then
             echo "✅ Deployment successful!"
             # Send Slack notification (optional)
-            # curl -X POST -H 'Content-type: application/json' --data '{"text":"✅ Splitwise deployed successfully to production"}' ${{ secrets.SLACK_WEBHOOK }}
+            # curl -X POST -H 'Content-type: application/json' --data '{"text":"✅ WealthWatch deployed successfully to production"}' ${{ secrets.SLACK_WEBHOOK }}
           else
             echo "❌ Deployment failed!"
             # Send Slack notification (optional)
-            # curl -X POST -H 'Content-type: application/json' --data '{"text":"❌ Splitwise deployment failed"}' ${{ secrets.SLACK_WEBHOOK }}
+            # curl -X POST -H 'Content-type: application/json' --data '{"text":"❌ WealthWatch deployment failed"}' ${{ secrets.SLACK_WEBHOOK }}
           fi
 
   terraform:

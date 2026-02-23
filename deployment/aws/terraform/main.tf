@@ -19,7 +19,7 @@ resource "aws_vpc" "main" {
   enable_dns_support   = true
 
   tags = {
-    Name        = "splitwise-vpc"
+    Name        = "wealthwatch-vpc"
     Environment = var.environment
   }
 }
@@ -29,7 +29,7 @@ resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name        = "splitwise-igw"
+    Name        = "wealthwatch-igw"
     Environment = var.environment
   }
 }
@@ -44,7 +44,7 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name        = "splitwise-public-${count.index + 1}"
+    Name        = "wealthwatch-public-${count.index + 1}"
     Environment = var.environment
   }
 }
@@ -58,7 +58,7 @@ resource "aws_subnet" "private" {
   availability_zone = data.aws_availability_zones.available.names[count.index]
 
   tags = {
-    Name        = "splitwise-private-${count.index + 1}"
+    Name        = "wealthwatch-private-${count.index + 1}"
     Environment = var.environment
   }
 }
@@ -68,7 +68,7 @@ resource "aws_eip" "nat" {
   domain = "vpc"
 
   tags = {
-    Name        = "splitwise-nat-eip"
+    Name        = "wealthwatch-nat-eip"
     Environment = var.environment
   }
 
@@ -81,7 +81,7 @@ resource "aws_nat_gateway" "main" {
   subnet_id     = aws_subnet.public[0].id
 
   tags = {
-    Name        = "splitwise-nat"
+    Name        = "wealthwatch-nat"
     Environment = var.environment
   }
 
@@ -98,7 +98,7 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    Name        = "splitwise-public-rt"
+    Name        = "wealthwatch-public-rt"
     Environment = var.environment
   }
 }
@@ -112,7 +112,7 @@ resource "aws_route_table" "private" {
   }
 
   tags = {
-    Name        = "splitwise-private-rt"
+    Name        = "wealthwatch-private-rt"
     Environment = var.environment
   }
 }
@@ -134,7 +134,7 @@ resource "aws_route_table_association" "private" {
 
 # Security Groups
 resource "aws_security_group" "lb" {
-  name_prefix = "splitwise-lb-"
+  name_prefix = "wealthwatch-lb-"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -161,13 +161,13 @@ resource "aws_security_group" "lb" {
   }
 
   tags = {
-    Name        = "splitwise-lb-sg"
+    Name        = "wealthwatch-lb-sg"
     Environment = var.environment
   }
 }
 
 resource "aws_security_group" "ecs" {
-  name_prefix = "splitwise-ecs-"
+  name_prefix = "wealthwatch-ecs-"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -186,13 +186,13 @@ resource "aws_security_group" "ecs" {
   }
 
   tags = {
-    Name        = "splitwise-ecs-sg"
+    Name        = "wealthwatch-ecs-sg"
     Environment = var.environment
   }
 }
 
 resource "aws_security_group" "rds" {
-  name_prefix = "splitwise-rds-"
+  name_prefix = "wealthwatch-rds-"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -204,13 +204,13 @@ resource "aws_security_group" "rds" {
   }
 
   tags = {
-    Name        = "splitwise-rds-sg"
+    Name        = "wealthwatch-rds-sg"
     Environment = var.environment
   }
 }
 
 resource "aws_security_group" "redis" {
-  name_prefix = "splitwise-redis-"
+  name_prefix = "wealthwatch-redis-"
   vpc_id      = aws_vpc.main.id
 
   ingress {
@@ -222,25 +222,25 @@ resource "aws_security_group" "redis" {
   }
 
   tags = {
-    Name        = "splitwise-redis-sg"
+    Name        = "wealthwatch-redis-sg"
     Environment = var.environment
   }
 }
 
 # RDS Subnet Group
 resource "aws_db_subnet_group" "main" {
-  name       = "splitwise-db-subnet-group"
+  name       = "wealthwatch-db-subnet-group"
   subnet_ids = aws_subnet.private[*].id
 
   tags = {
-    Name        = "splitwise-db-subnet-group"
+    Name        = "wealthwatch-db-subnet-group"
     Environment = var.environment
   }
 }
 
 # RDS PostgreSQL
 resource "aws_db_instance" "postgres" {
-  identifier = "splitwise-db"
+  identifier = "wealthwatch-db"
 
   engine         = "postgres"
   engine_version = "15.4"
@@ -251,8 +251,8 @@ resource "aws_db_instance" "postgres" {
   storage_type          = "gp2"
   storage_encrypted     = true
 
-  db_name  = "splitwise_prod"
-  username = "splitwise_user"
+  db_name  = "wealthwatch_prod"
+  username = "wealthwatch_user"
   password = var.db_password
 
   vpc_security_group_ids = [aws_security_group.rds.id]
@@ -263,31 +263,31 @@ resource "aws_db_instance" "postgres" {
   maintenance_window     = "sun:04:00-sun:05:00"
 
   skip_final_snapshot       = false
-  final_snapshot_identifier = "splitwise-final-snapshot"
+  final_snapshot_identifier = "wealthwatch-final-snapshot"
 
   deletion_protection = false
 
   tags = {
-    Name        = "splitwise-db"
+    Name        = "wealthwatch-db"
     Environment = var.environment
   }
 }
 
 # ElastiCache Subnet Group
 resource "aws_elasticache_subnet_group" "main" {
-  name       = "splitwise-cache-subnet-group"
+  name       = "wealthwatch-cache-subnet-group"
   subnet_ids = aws_subnet.private[*].id
 
   tags = {
-    Name        = "splitwise-cache-subnet-group"
+    Name        = "wealthwatch-cache-subnet-group"
     Environment = var.environment
   }
 }
 
 # ElastiCache Redis
 resource "aws_elasticache_replication_group" "redis" {
-  replication_group_id       = "splitwise-redis"
-  description                = "Splitwise Redis cluster"
+  replication_group_id       = "wealthwatch-redis"
+  description                = "WealthWatch Redis cluster"
   node_type                  = "cache.t3.micro"
   port                       = 6379
   parameter_group_name       = "default.redis7"
@@ -302,14 +302,14 @@ resource "aws_elasticache_replication_group" "redis" {
   auth_token                 = var.redis_auth_token
 
   tags = {
-    Name        = "splitwise-redis"
+    Name        = "wealthwatch-redis"
     Environment = var.environment
   }
 }
 
 # ECS Cluster
 resource "aws_ecs_cluster" "main" {
-  name = "splitwise-cluster"
+  name = "wealthwatch-cluster"
 
   setting {
     name  = "containerInsights"
@@ -317,14 +317,14 @@ resource "aws_ecs_cluster" "main" {
   }
 
   tags = {
-    Name        = "splitwise-cluster"
+    Name        = "wealthwatch-cluster"
     Environment = var.environment
   }
 }
 
 # Application Load Balancer
 resource "aws_lb" "main" {
-  name               = "splitwise-lb"
+  name               = "wealthwatch-lb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.lb.id]
@@ -333,14 +333,14 @@ resource "aws_lb" "main" {
   enable_deletion_protection = false
 
   tags = {
-    Name        = "splitwise-lb"
+    Name        = "wealthwatch-lb"
     Environment = var.environment
   }
 }
 
 # Target Group
 resource "aws_lb_target_group" "main" {
-  name     = "splitwise-tg"
+  name     = "wealthwatch-tg"
   port     = 8080
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
@@ -358,7 +358,7 @@ resource "aws_lb_target_group" "main" {
   }
 
   tags = {
-    Name        = "splitwise-tg"
+    Name        = "wealthwatch-tg"
     Environment = var.environment
   }
 }
@@ -377,7 +377,7 @@ resource "aws_lb_listener" "main" {
 
 # ECS Task Execution Role
 resource "aws_iam_role" "ecs_execution_role" {
-  name = "splitwise-ecs-execution-role"
+  name = "wealthwatch-ecs-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -393,7 +393,7 @@ resource "aws_iam_role" "ecs_execution_role" {
   })
 
   tags = {
-    Name        = "splitwise-ecs-execution-role"
+    Name        = "wealthwatch-ecs-execution-role"
     Environment = var.environment
   }
 }
@@ -405,7 +405,7 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy" {
 
 # ECS Task Role
 resource "aws_iam_role" "ecs_task_role" {
-  name = "splitwise-ecs-task-role"
+  name = "wealthwatch-ecs-task-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -421,25 +421,25 @@ resource "aws_iam_role" "ecs_task_role" {
   })
 
   tags = {
-    Name        = "splitwise-ecs-task-role"
+    Name        = "wealthwatch-ecs-task-role"
     Environment = var.environment
   }
 }
 
 # CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "ecs" {
-  name              = "/ecs/splitwise"
+  name              = "/ecs/wealthwatch"
   retention_in_days = 14
 
   tags = {
-    Name        = "splitwise-ecs-logs"
+    Name        = "wealthwatch-ecs-logs"
     Environment = var.environment
   }
 }
 
 # ECS Task Definition
 resource "aws_ecs_task_definition" "main" {
-  family                   = "splitwise"
+  family                   = "wealthwatch"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "512"
@@ -449,7 +449,7 @@ resource "aws_ecs_task_definition" "main" {
 
   container_definitions = jsonencode([
     {
-      name  = "splitwise"
+      name  = "wealthwatch"
       image = "${aws_ecr_repository.main.repository_url}:latest"
 
       essential = true
@@ -514,14 +514,14 @@ resource "aws_ecs_task_definition" "main" {
   ])
 
   tags = {
-    Name        = "splitwise-task-def"
+    Name        = "wealthwatch-task-def"
     Environment = var.environment
   }
 }
 
 # ECS Service
 resource "aws_ecs_service" "main" {
-  name            = "splitwise-service"
+  name            = "wealthwatch-service"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.main.arn
   desired_count   = 2
@@ -535,14 +535,14 @@ resource "aws_ecs_service" "main" {
 
   load_balancer {
     target_group_arn = aws_lb_target_group.main.arn
-    container_name   = "splitwise"
+    container_name   = "wealthwatch"
     container_port   = 8080
   }
 
   depends_on = [aws_lb_listener.main]
 
   tags = {
-    Name        = "splitwise-service"
+    Name        = "wealthwatch-service"
     Environment = var.environment
   }
 }
@@ -558,7 +558,7 @@ resource "aws_appautoscaling_target" "ecs" {
 
 # Auto Scaling Policy
 resource "aws_appautoscaling_policy" "ecs" {
-  name               = "splitwise-cpu-scaling"
+  name               = "wealthwatch-cpu-scaling"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs.resource_id
   scalable_dimension = aws_appautoscaling_target.ecs.scalable_dimension
@@ -574,7 +574,7 @@ resource "aws_appautoscaling_policy" "ecs" {
 
 # ECR Repository
 resource "aws_ecr_repository" "main" {
-  name                 = "splitwise"
+  name                 = "wealthwatch"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
@@ -582,17 +582,17 @@ resource "aws_ecr_repository" "main" {
   }
 
   tags = {
-    Name        = "splitwise-ecr"
+    Name        = "wealthwatch-ecr"
     Environment = var.environment
   }
 }
 
 # Secrets Manager
 resource "aws_secretsmanager_secret" "db_host" {
-  name = "splitwise/db_host"
+  name = "wealthwatch/db_host"
 
   tags = {
-    Name        = "splitwise-db-host"
+    Name        = "wealthwatch-db-host"
     Environment = var.environment
   }
 }
@@ -603,10 +603,10 @@ resource "aws_secretsmanager_secret_version" "db_host" {
 }
 
 resource "aws_secretsmanager_secret" "db_password" {
-  name = "splitwise/db_password"
+  name = "wealthwatch/db_password"
 
   tags = {
-    Name        = "splitwise-db-password"
+    Name        = "wealthwatch-db-password"
     Environment = var.environment
   }
 }
@@ -617,10 +617,10 @@ resource "aws_secretsmanager_secret_version" "db_password" {
 }
 
 resource "aws_secretsmanager_secret" "jwt_secret" {
-  name = "splitwise/jwt_secret"
+  name = "wealthwatch/jwt_secret"
 
   tags = {
-    Name        = "splitwise-jwt-secret"
+    Name        = "wealthwatch-jwt-secret"
     Environment = var.environment
   }
 }
@@ -631,10 +631,10 @@ resource "aws_secretsmanager_secret_version" "jwt_secret" {
 }
 
 resource "aws_secretsmanager_secret" "redis_host" {
-  name = "splitwise/redis_host"
+  name = "wealthwatch/redis_host"
 
   tags = {
-    Name        = "splitwise-redis-host"
+    Name        = "wealthwatch-redis-host"
     Environment = var.environment
   }
 }
@@ -645,10 +645,10 @@ resource "aws_secretsmanager_secret_version" "redis_host" {
 }
 
 resource "aws_secretsmanager_secret" "redis_auth_token" {
-  name = "splitwise/redis_auth_token"
+  name = "wealthwatch/redis_auth_token"
 
   tags = {
-    Name        = "splitwise-redis-auth-token"
+    Name        = "wealthwatch-redis-auth-token"
     Environment = var.environment
   }
 }

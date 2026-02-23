@@ -1,6 +1,6 @@
 # AWS Production Deployment Guide
 
-This guide covers deploying the Splitwise application to AWS using modern, production-ready infrastructure.
+This guide covers deploying the WealthWatch application to AWS using modern, production-ready infrastructure.
 
 ## Architecture Overview
 
@@ -50,7 +50,7 @@ This guide covers deploying the Splitwise application to AWS using modern, produ
 ```bash
 # Create repository
 aws ecr create-repository \
-    --repository-name splitwise \
+    --repository-name wealthwatch \
     --region us-east-1
 
 # Login to ECR
@@ -61,13 +61,13 @@ aws ecr get-login-password --region us-east-1 | docker login --username AWS --pa
 
 ```bash
 # Build image
-docker build -t splitwise .
+docker build -t wealthwatch .
 
 # Tag for ECR
-docker tag splitwise:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/splitwise:latest
+docker tag wealthwatch:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/wealthwatch:latest
 
 # Push to ECR
-docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/splitwise:latest
+docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/wealthwatch:latest
 ```
 
 ### 3. Create Infrastructure with Terraform
@@ -81,7 +81,7 @@ See `terraform/` directory for complete infrastructure setup.
 aws ecs register-task-definition --cli-input-json file://task-definition.json
 
 # Create service
-aws ecs create-service --cluster splitwise-cluster --service-name splitwise-service --task-definition splitwise:1 --desired-count 2 --launch-type FARGATE --network-configuration "awsvpcConfiguration={subnets=[subnet-12345,subnet-67890],securityGroups=[sg-12345],assignPublicIp=ENABLED}"
+aws ecs create-service --cluster wealthwatch-cluster --service-name wealthwatch-service --task-definition wealthwatch:1 --desired-count 2 --launch-type FARGATE --network-configuration "awsvpcConfiguration={subnets=[subnet-12345,subnet-67890],securityGroups=[sg-12345],assignPublicIp=ENABLED}"
 ```
 
 ---
@@ -118,7 +118,7 @@ chmod +x /usr/local/bin/docker-compose
 # Clone and deploy
 cd /opt
 git clone <your-repo>
-cd splitwise
+cd wealthwatch
 docker-compose up -d
 ```
 
@@ -134,9 +134,9 @@ Create `.env.production`:
 # Database (RDS)
 DB_HOST=your-rds-endpoint.rds.amazonaws.com
 DB_PORT=5432
-DB_USER=splitwise_prod
+DB_USER=wealthwatch_prod
 DB_PASSWORD=your-secure-password
-DB_NAME=splitwise_prod
+DB_NAME=wealthwatch_prod
 DB_SSLMODE=require
 
 # Redis (ElastiCache)
@@ -268,7 +268,7 @@ jobs:
       - name: Build, tag, and push image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: splitwise
+          ECR_REPOSITORY: wealthwatch
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
@@ -278,7 +278,7 @@ jobs:
       
       - name: Update ECS service
         run: |
-          aws ecs update-service --cluster splitwise-cluster --service splitwise-service --force-new-deployment
+          aws ecs update-service --cluster wealthwatch-cluster --service wealthwatch-service --force-new-deployment
 ```
 
 ---
@@ -342,14 +342,14 @@ jobs:
 
 ```bash
 # Check ECS service status
-aws ecs describe-services --cluster splitwise-cluster --services splitwise-service
+aws ecs describe-services --cluster wealthwatch-cluster --services wealthwatch-service
 
 # Check running tasks
-aws ecs list-tasks --cluster splitwise-cluster
+aws ecs list-tasks --cluster wealthwatch-cluster
 
 # Check CloudWatch logs
-aws logs tail /ecs/splitwise --follow
+aws logs tail /ecs/wealthwatch --follow
 
 # Check RDS status
-aws rds describe-db-instances --db-instance-identifier splitwise-db
+aws rds describe-db-instances --db-instance-identifier wealthwatch-db
 ```

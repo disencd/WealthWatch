@@ -1,8 +1,8 @@
 package services
 
 import (
-	"splitwise/models"
-	"splitwise/utils"
+	"wealthwatch/models"
+	"wealthwatch/utils"
 
 	"gorm.io/gorm"
 )
@@ -18,17 +18,17 @@ func NewSplitService(db *gorm.DB) *SplitService {
 type SplitType string
 
 const (
-	EqualSplit    SplitType = "equal"
-	ExactSplit    SplitType = "exact"
+	EqualSplit      SplitType = "equal"
+	ExactSplit      SplitType = "exact"
 	PercentageSplit SplitType = "percentage"
 )
 
 type SplitRequest struct {
-	Type      SplitType                `json:"type" binding:"required"`
-	Amount    float64                  `json:"amount" binding:"required,gt=0"`
-	UserIDs   []uint                   `json:"user_ids" binding:"required,min=1"`
-	Splits    map[uint]float64         `json:"splits,omitempty"`     // For exact splits
-	Percentages map[uint]float64       `json:"percentages,omitempty"` // For percentage splits
+	Type        SplitType        `json:"type" binding:"required"`
+	Amount      float64          `json:"amount" binding:"required,gt=0"`
+	UserIDs     []uint           `json:"user_ids" binding:"required,min=1"`
+	Splits      map[uint]float64 `json:"splits,omitempty"`      // For exact splits
+	Percentages map[uint]float64 `json:"percentages,omitempty"` // For percentage splits
 }
 
 // CalculateSplits calculates how an expense should be split among users
@@ -108,7 +108,7 @@ func (s *SplitService) calculatePercentageSplit(totalAmount float64, userIDs []u
 			return nil, utils.NewValidationError("Percentage must be greater than 0")
 		}
 		totalPercentage += percentage
-		
+
 		amount := (percentage / 100.0) * totalAmount
 		splits = append(splits, models.Split{
 			UserID:     userID,

@@ -1,17 +1,17 @@
 apiVersion: v2
-name: splitwise
-description: A Helm chart for Splitwise expense sharing application
+name: wealthwatch
+description: A Helm chart for WealthWatch expense sharing application
 type: application
 version: 0.1.0
 appVersion: "1.0.0"
 keywords:
   - expense-sharing
-  - splitwise
+  - wealthwatch
   - go
   - web-app
-home: https://github.com/your-org/splitwise
+home: https://github.com/your-org/wealthwatch
 sources:
-  - https://github.com/your-org/splitwise
+  - https://github.com/your-org/wealthwatch
 maintainers:
   - name: Your Name
     email: your.email@example.com

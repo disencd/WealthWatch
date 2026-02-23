@@ -1,7 +1,7 @@
-class SplitwiseApp {
+class WealthWatchApp {
     constructor() {
         this.apiBase = '/api/v1';
-        this.token = localStorage.getItem('splitwise_token');
+        this.token = localStorage.getItem('wealthwatch_token');
         this.currentUser = null;
         this.init();
     }
@@ -111,7 +111,7 @@ class SplitwiseApp {
 
             this.token = data.token;
             this.currentUser = data.user;
-            localStorage.setItem('splitwise_token', this.token);
+            localStorage.setItem('wealthwatch_token', this.token);
             
             this.showNotification('Login successful!', 'success');
             this.showDashboard();
@@ -141,7 +141,7 @@ class SplitwiseApp {
 
             this.token = data.token;
             this.currentUser = data.user;
-            localStorage.setItem('splitwise_token', this.token);
+            localStorage.setItem('wealthwatch_token', this.token);
             
             this.showNotification('Registration successful!', 'success');
             this.showDashboard();
@@ -154,7 +154,7 @@ class SplitwiseApp {
     logout() {
         this.token = null;
         this.currentUser = null;
-        localStorage.removeItem('splitwise_token');
+        localStorage.removeItem('wealthwatch_token');
         this.showLogin();
     }
 
@@ -516,4 +516,4 @@ class SplitwiseApp {
 }
 
 // Initialize the app
-const app = new SplitwiseApp();
+const app = new WealthWatchApp();

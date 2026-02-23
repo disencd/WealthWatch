@@ -1,8 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: splitwise-ingress
-  namespace: splitwise
+  name: wealthwatch-ingress
+  namespace: wealthwatch
   annotations:
     # AWS Load Balancer Controller
     kubernetes.io/ingress.class: "alb"
@@ -25,7 +25,7 @@ metadata:
     alb.ingress.kubernetes.io/redirect-http-to-https: "true"
     
     # CORS Configuration
-    alb.ingress.kubernetes.io/cors-allow-origin: "'https://splitwise.yourdomain.com,http://localhost:3000'"
+    alb.ingress.kubernetes.io/cors-allow-origin: "'https://wealthwatch.yourdomain.com,http://localhost:3000'"
     alb.ingress.kubernetes.io/cors-allow-methods: "'GET, POST, PUT, DELETE, OPTIONS'"
     alb.ingress.kubernetes.io/cors-allow-headers: "'Content-Type,Authorization,X-Requested-With'"
     alb.ingress.kubernetes.io/cors-allow-credentials: "'true'"
@@ -37,31 +37,31 @@ metadata:
     # alb.ingress.kubernetes.io/target-group-attributes: "stickiness.enabled=true,stickiness.type=lb_cookie,stickiness.lb_cookie.duration_seconds=3600"
     
     # Access Logs
-    alb.ingress.kubernetes.io/load-balancer-attributes: "access_logs.s3.enabled=true,access_logs.s3.bucket=splitwise-access-logs,access_logs.s3.prefix=alb"
+    alb.ingress.kubernetes.io/load-balancer-attributes: "access_logs.s3.enabled=true,access_logs.s3.bucket=wealthwatch-access-logs,access_logs.s3.prefix=alb"
 spec:
   tls:
   - hosts:
-    - splitwise.yourdomain.com
-    secretName: splitwise-tls
+    - wealthwatch.yourdomain.com
+    secretName: wealthwatch-tls
   rules:
-  - host: splitwise.yourdomain.com
+  - host: wealthwatch.yourdomain.com
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: splitwise-service
+            name: wealthwatch-service
             port:
               number: 80
   # Optional: Add non-tls rule for HTTP redirect
-  - host: splitwise.yourdomain.com
+  - host: wealthwatch.yourdomain.com
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: splitwise-service
+            name: wealthwatch-service
             port:
               number: 80

@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"splitwise/middleware"
-	"splitwise/services"
+	"wealthwatch/middleware"
+	"wealthwatch/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -39,9 +39,9 @@ func (h *BalanceHandler) GetBalances(c *gin.Context) {
 
 	// Convert to response format with user details
 	type BalanceResponse struct {
-		UserID  uint    `json:"user_id"`
-		Amount  float64 `json:"amount"`
-		IsOwed  bool    `json:"is_owed"`  // true if other user owes current user
+		UserID uint    `json:"user_id"`
+		Amount float64 `json:"amount"`
+		IsOwed bool    `json:"is_owed"` // true if other user owes current user
 	}
 
 	var response []BalanceResponse
@@ -53,7 +53,7 @@ func (h *BalanceHandler) GetBalances(c *gin.Context) {
 			LastName  string `json:"last_name"`
 			Email     string `json:"email"`
 		}
-		
+
 		if err := h.db.Table("users").Select("id, first_name, last_name, email").Where("id = ?", otherUserID).First(&user).Error; err != nil {
 			continue // Skip if user not found
 		}
@@ -98,7 +98,7 @@ func (h *BalanceHandler) GetBalanceWithUser(c *gin.Context) {
 		LastName  string `json:"last_name"`
 		Email     string `json:"email"`
 	}
-	
+
 	if err := h.db.Table("users").Select("id, first_name, last_name, email").Where("id = ?", otherUserID).First(&otherUser).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return

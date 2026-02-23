@@ -1,6 +1,6 @@
 # Local Minikube Deployment - Microservices Architecture
 
-This guide covers deploying the Splitwise application as microservices locally using Minikube.
+This guide covers deploying the WealthWatch application as microservices locally using Minikube.
 
 ## Microservices Architecture
 
@@ -153,10 +153,10 @@ docker-compose -f docker-compose.dev.yml up
 ### 3. Monitoring
 ```bash
 # Check service status
-kubectl get pods -n splitwise
+kubectl get pods -n wealthwatch
 
 # View logs
-kubectl logs -f deployment/auth-service -n splitwise
+kubectl logs -f deployment/auth-service -n wealthwatch
 
 # Access service dashboards
 minikube dashboard
@@ -174,8 +174,8 @@ Each service uses environment variables for configuration:
 
 ### Service Discovery
 Services discover each other using Kubernetes DNS:
-- `auth-service.splitwise.svc.cluster.local:8001`
-- `user-service.splitwise.svc.cluster.local:8002`
+- `auth-service.wealthwatch.svc.cluster.local:8001`
+- `user-service.wealthwatch.svc.cluster.local:8002`
 - etc.
 
 ## Data Management
@@ -193,7 +193,7 @@ Each service owns its database schema:
 Each service manages its own migrations:
 ```bash
 # Run migrations for auth service
-kubectl exec deployment/auth-service -n splitwise -- ./migrate up
+kubectl exec deployment/auth-service -n wealthwatch -- ./migrate up
 ```
 
 ## Scaling
@@ -201,8 +201,8 @@ kubectl exec deployment/auth-service -n splitwise -- ./migrate up
 ### Horizontal Scaling
 ```bash
 # Scale individual services
-kubectl scale deployment auth-service --replicas=3 -n splitwise
-kubectl scale deployment expense-service --replicas=5 -n splitwise
+kubectl scale deployment auth-service --replicas=3 -n wealthwatch
+kubectl scale deployment expense-service --replicas=5 -n wealthwatch
 ```
 
 ### Auto-scaling
@@ -218,31 +218,31 @@ kubectl apply -f monitoring/hpa/
 1. **Service Not Starting**
    ```bash
    # Check pod logs
-   kubectl logs -f deployment/auth-service -n splitwise
+   kubectl logs -f deployment/auth-service -n wealthwatch
    
    # Check events
-   kubectl get events -n splitwise --sort-by=.metadata.creationTimestamp
+   kubectl get events -n wealthwatch --sort-by=.metadata.creationTimestamp
    ```
 
 2. **Database Connection Issues**
    ```bash
    # Check database connectivity
-   kubectl exec deployment/auth-service -n splitwise -- ping postgres-service
+   kubectl exec deployment/auth-service -n wealthwatch -- ping postgres-service
    ```
 
 3. **Service Communication Issues**
    ```bash
    # Test service connectivity
-   kubectl exec deployment/auth-service -n splitwise -- curl http://user-service:8002/health
+   kubectl exec deployment/auth-service -n wealthwatch -- curl http://user-service:8002/health
    ```
 
 ### Debugging Tools
 ```bash
 # Port forward to local machine
-kubectl port-forward service/auth-service 8001:8001 -n splitwise
+kubectl port-forward service/auth-service 8001:8001 -n wealthwatch
 
 # Exec into pod
-kubectl exec -it deployment/auth-service -n splitwise -- sh
+kubectl exec -it deployment/auth-service -n wealthwatch -- sh
 
 # Network debugging
 kubectl run debug-pod --image=nicolaka/netshoot -it --rm -- /bin/bash

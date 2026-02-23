@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# AWS Production Deployment Script for Splitwise
+# AWS Production Deployment Script for WealthWatch
 # This script automates the deployment process
 
 set -e
 
 # Configuration
 AWS_REGION="us-east-1"
-ECR_REPOSITORY="splitwise"
-ECS_CLUSTER="splitwise-cluster"
-ECS_SERVICE="splitwise-service"
-CONTAINER_NAME="splitwise"
+ECR_REPOSITORY="wealthwatch"
+ECS_CLUSTER="wealthwatch-cluster"
+ECS_SERVICE="wealthwatch-service"
+CONTAINER_NAME="wealthwatch"
 
 # Colors for output
 RED='\033[0;31m'
@@ -141,10 +141,10 @@ run_migrations() {
     # Run migration task
     aws ecs run-task \
         --cluster ${ECS_CLUSTER} \
-        --task-definition splitwise-migrate \
+        --task-definition wealthwatch-migrate \
         --launch-type FARGATE \
         --network-configuration "awsvpcConfiguration={subnets=[subnet-12345,subnet-67890],securityGroups=[sg-12345],assignPublicIp=ENABLED}" \
-        --overrides '{"containerOverrides":[{"name":"splitwise","command":["./migrate"]}]}'
+        --overrides '{"containerOverrides":[{"name":"wealthwatch","command":["./migrate"]}]}'
     
     log_info "Database migrations completed."
 }
@@ -154,7 +154,7 @@ health_check() {
     log_info "Performing health check..."
     
     # Get load balancer DNS
-    LOAD_BALANCER_DNS=$(aws elbv2 describe-load-balancers --names splitwise-lb --query 'LoadBalancers[0].DNSName' --output text)
+    LOAD_BALANCER_DNS=$(aws elbv2 describe-load-balancers --names wealthwatch-lb --query 'LoadBalancers[0].DNSName' --output text)
     
     # Wait for load balancer to be ready
     log_info "Waiting for load balancer to be ready..."
@@ -178,7 +178,7 @@ cleanup() {
 
 # Main deployment function
 main() {
-    log_info "Starting Splitwise deployment to AWS..."
+    log_info "Starting WealthWatch deployment to AWS..."
     
     check_prerequisites
     build_and_push_image
@@ -189,7 +189,7 @@ main() {
     cleanup
     
     log_info "🎉 Deployment completed successfully!"
-    log_info "Application is available at: http://$(aws elbv2 describe-load-balancers --names splitwise-lb --query 'LoadBalancers[0].DNSName' --output text)"
+    log_info "Application is available at: http://$(aws elbv2 describe-load-balancers --names wealthwatch-lb --query 'LoadBalancers[0].DNSName' --output text)"
 }
 
 # Handle script arguments

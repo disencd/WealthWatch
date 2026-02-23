@@ -1,9 +1,9 @@
 package routes
 
 import (
-	"splitwise/handlers"
-	"splitwise/middleware"
-	"splitwise/models"
+	"wealthwatch/handlers"
+	"wealthwatch/middleware"
+	"wealthwatch/models"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

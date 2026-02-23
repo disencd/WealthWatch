@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"splitwise/middleware"
-	"splitwise/models"
-	"splitwise/services"
+	"wealthwatch/middleware"
+	"wealthwatch/models"
+	"wealthwatch/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

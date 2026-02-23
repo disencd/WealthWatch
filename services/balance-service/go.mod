@@ -1,4 +1,4 @@
-module splitwise/services/balance-service
+module wealthwatch/services/balance-service
 
 go 1.21
 
@@ -7,7 +7,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.4
-	splitwise/pkg v0.0.0
+	wealthwatch/pkg v0.0.0
 )
 
-replace splitwise/pkg => ../../pkg
+replace wealthwatch/pkg => ../../pkg
