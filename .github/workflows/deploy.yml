@@ -123,9 +123,39 @@ jobs:
           overlay="${{ inputs.overlay || 'k8s/overlays/doks-basic' }}"
           kubectl apply -k "$overlay"
 
+      - name: Wait for Postgres ready
+        run: |
+          echo "Waiting for Postgres pod to be ready..."
+          kubectl -n wealthwatch wait --for=condition=ready pod -l app=postgres --timeout=120s || true
+          kubectl -n wealthwatch get pods -l app=postgres
+
       - name: Update image & wait for rollout
         run: |
           set -euo pipefail
           image=$(echo "${{ needs.push.outputs.image_tag }}" | head -n 1)
           kubectl -n wealthwatch set image deployment/wealthwatch "wealthwatch=$image"
           kubectl -n wealthwatch rollout status deployment/wealthwatch --timeout=300s
+
+      - name: Debug on failure
+        if: failure()
+        run: |
+          echo "=== Pod Status ==="
+          kubectl -n wealthwatch get pods -o wide
+          echo ""
+          echo "=== Pod Events ==="
+          kubectl -n wealthwatch get events --sort-by=.lastTimestamp | tail -30
+          echo ""
+          echo "=== Describe WealthWatch Deployment ==="
+          kubectl -n wealthwatch describe deployment/wealthwatch
+          echo ""
+          echo "=== App Pod Logs ==="
+          for pod in $(kubectl -n wealthwatch get pods -l app=wealthwatch -o name); do
+            echo "--- $pod ---"
+            kubectl -n wealthwatch logs "$pod" --tail=50 || true
+          done
+          echo ""
+          echo "=== Postgres Pod Logs ==="
+          for pod in $(kubectl -n wealthwatch get pods -l app=postgres -o name); do
+            echo "--- $pod ---"
+            kubectl -n wealthwatch logs "$pod" --tail=30 || true
+          done
