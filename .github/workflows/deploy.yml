@@ -108,13 +108,15 @@ jobs:
           version: v1.29.0
 
       - name: Create GHCR image pull secret
+        env:
+          PULL_TOKEN: ${{ secrets.GHCR_PAT || secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           kubectl create namespace wealthwatch --dry-run=client -o yaml | kubectl apply -f -
           kubectl -n wealthwatch create secret docker-registry ghcr-login \
             --docker-server=ghcr.io \
             --docker-username=${{ github.actor }} \
-            --docker-password=${{ secrets.GITHUB_TOKEN }} \
+            --docker-password="${PULL_TOKEN}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy manifests
@@ -123,17 +125,19 @@ jobs:
           overlay="${{ inputs.overlay || 'k8s/overlays/doks-basic' }}"
           kubectl apply -k "$overlay"
 
-      - name: Wait for Postgres ready
+      - name: Restart Postgres (clear initdb issue)
         run: |
+          kubectl -n wealthwatch rollout restart deployment/postgres || true
           echo "Waiting for Postgres pod to be ready..."
-          kubectl -n wealthwatch wait --for=condition=ready pod -l app=postgres --timeout=120s || true
+          kubectl -n wealthwatch wait --for=condition=ready pod -l app=postgres --timeout=180s
           kubectl -n wealthwatch get pods -l app=postgres
 
-      - name: Update image & wait for rollout
+      - name: Update image & rollout
         run: |
           set -euo pipefail
           image=$(echo "${{ needs.push.outputs.image_tag }}" | head -n 1)
           kubectl -n wealthwatch set image deployment/wealthwatch "wealthwatch=$image"
+          kubectl -n wealthwatch rollout restart deployment/wealthwatch
           kubectl -n wealthwatch rollout status deployment/wealthwatch --timeout=300s
 
       - name: Debug on failure
