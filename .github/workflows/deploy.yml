@@ -87,7 +87,6 @@ jobs:
     name: Deploy to DOKS
     needs: push
     runs-on: ubuntu-latest
-    environment: doks
 
     steps:
       - name: Checkout
