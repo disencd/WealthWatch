@@ -119,15 +119,21 @@ jobs:
             --docker-password="${PULL_TOKEN}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
+      - name: Clean stale Postgres (one-time PVC fix)
+        run: |
+          echo "Deleting stale Postgres to force clean DB init..."
+          kubectl -n wealthwatch delete deployment/postgres --ignore-not-found
+          kubectl -n wealthwatch delete pvc/postgres-data --ignore-not-found
+          sleep 5
+
       - name: Deploy manifests
         run: |
           set -euo pipefail
           overlay="${{ inputs.overlay || 'k8s/overlays/doks-basic' }}"
           kubectl apply -k "$overlay"
 
-      - name: Restart Postgres (clear initdb issue)
+      - name: Wait for Postgres ready
         run: |
-          kubectl -n wealthwatch rollout restart deployment/postgres || true
           echo "Waiting for Postgres pod to be ready..."
           kubectl -n wealthwatch wait --for=condition=ready pod -l app=postgres --timeout=180s
           kubectl -n wealthwatch get pods -l app=postgres
