@@ -532,6 +532,8 @@ async def _import_one_monthly(db: AsyncSession, fid: int, uid: int, upload: Uplo
 
         cat_name = row[cat_idx].strip() if cat_idx < len(row) else ""
         cat_id, sub_id, new_c, new_s = await resolve_cat_sub(cat_name)
+        if cat_id == 0 or sub_id == 0:
+            skipped += 1; continue
         if new_c: created_cats += 1
         if new_s: created_subs += 1
 

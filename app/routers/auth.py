@@ -126,7 +126,7 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
         select(FamilyMembership).where(
             FamilyMembership.user_id == user.id, FamilyMembership.status == "active"
         ).order_by(FamilyMembership.id)
-    )).scalar_first()
+    )).scalars().first()
     if not membership:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "User is not part of any active family")
 

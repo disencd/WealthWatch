@@ -1,15 +1,19 @@
 import logging
 import os
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
+from app.auth import get_current_user
 from app.config import get_settings
-from app.database import init_db
+from app.database import get_db, init_db
+from app.models import User
 from app.routers import (
     auth, family, budget, account, investment,
     recurring, rules, receipts, reports,
@@ -62,6 +66,21 @@ if os.path.isdir(WEB_DIR):
     @app.get("/", include_in_schema=False)
     async def index(request: Request):
         return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/api/v1/profile", tags=["auth"])
+async def profile_shortcut(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    user = (await db.execute(select(User).where(User.id == current_user.user_id))).scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "User not found")
+    return {
+        "id": user.id, "first_name": user.first_name, "last_name": user.last_name,
+        "email": user.email, "phone": user.phone, "avatar": user.avatar,
+        "created_at": str(user.created_at), "updated_at": str(user.updated_at),
+    }
 
 
 @app.get("/health")
