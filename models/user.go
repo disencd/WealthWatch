@@ -8,7 +8,7 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID        uint           `gorm:"primaryKey" json:"id"`
+	ID        uint           `json:"id"`
 	FirstName string         `gorm:"not null" json:"first_name"`
 	LastName  string         `gorm:"not null" json:"last_name"`
 	Email     string         `gorm:"uniqueIndex;not null" json:"email"`
@@ -20,9 +20,9 @@ type User struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Relationships
-	Groups      []Group      `gorm:"many2many:group_members;" json:"groups,omitempty"`
-	Expenses    []Expense    `gorm:"foreignKey:PayerID" json:"expenses,omitempty"`
-	Splits      []Split      `gorm:"foreignKey:UserID" json:"splits,omitempty"`
+	Groups          []Group      `gorm:"many2many:group_members;" json:"groups,omitempty"`
+	Expenses        []Expense    `gorm:"foreignKey:PayerID" json:"expenses,omitempty"`
+	Splits          []Split      `gorm:"foreignKey:UserID" json:"splits,omitempty"`
 	FromSettlements []Settlement `gorm:"foreignKey:FromUserID" json:"from_settlements,omitempty"`
 	ToSettlements   []Settlement `gorm:"foreignKey:ToUserID" json:"to_settlements,omitempty"`
 }

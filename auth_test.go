@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"wealthwatch/models"
@@ -18,10 +19,18 @@ import (
 
 // setupTestDB creates an in-memory SQLite database for testing
 func setupTestDB() *gorm.DB {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		panic("failed to get underlying sql.DB")
+	}
+	// SQLite in-memory databases are per-connection; keep a single connection so schema persists.
+	sqlDB.SetMaxOpenConns(1)
+	sqlDB.SetMaxIdleConns(1)
 
 	// Auto-migrate all models
 	models.AutoMigrate(db)
@@ -32,6 +41,7 @@ func setupTestDB() *gorm.DB {
 // setupTestRouter creates a test router with in-memory database
 func setupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
+	_ = os.Setenv("JWT_SECRET", "test-secret")
 
 	db := setupTestDB()
 	router := gin.New()
