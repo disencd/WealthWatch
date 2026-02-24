@@ -2,6 +2,25 @@
 
 This directory provides Kubernetes manifests for deploying WealthWatch.
 
+## Cheapest DOKS option (Basic nodes, no Ingress / no LoadBalancer)
+
+If you want the lowest-cost DOKS setup, use the `doks-basic` overlay. It:
+
+- **Excludes** the Ingress resource (so you don't need an ingress controller)
+- Uses the existing **ClusterIP** Service
+- Sets the Deployment to **1 replica**
+
+Access the app locally via port-forward (no public endpoint):
+
+```bash
+kubectl apply -k k8s/overlays/doks-basic
+kubectl -n wealthwatch port-forward svc/wealthwatch 8080:80
+```
+
+Then open:
+
+- http://localhost:8080
+
 ## What you must provide
 
 - A container image registry (DOCR for DOKS, ECR for EKS, or any OCI registry)
@@ -29,6 +48,7 @@ Using Kustomize:
 
 ```bash
 kubectl apply -k k8s/overlays/doks
+kubectl apply -k k8s/overlays/doks-basic
 # or
 kubectl apply -k k8s/overlays/eks
 ```
