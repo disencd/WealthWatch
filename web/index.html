@@ -3,220 +3,516 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WealthWatch - Expense Sharing</title>
+    <title>WealthWatch - Personal Finance Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81' }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         .balance-positive { color: #10b981; }
         .balance-negative { color: #ef4444; }
-        .balance-neutral { color: #6b7280; }
+        .sidebar-link.active { background: rgba(99,102,241,0.1); color: #4f46e5; font-weight: 600; }
+        .sidebar-link:hover { background: rgba(99,102,241,0.05); }
+        .stat-card { transition: transform 0.15s; }
+        .stat-card:hover { transform: translateY(-2px); }
+        .ownership-yours { border-left: 4px solid #6366f1; }
+        .ownership-mine { border-left: 4px solid #f59e0b; }
+        .ownership-ours { border-left: 4px solid #10b981; }
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        #sidebar { transition: width 0.2s; }
+        .chart-container { position: relative; height: 260px; }
     </style>
 </head>
-<body class="bg-gray-50">
-    <div id="app">
-        <!-- Navigation -->
-        <nav class="bg-white shadow-sm border-b">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between h-16">
-                    <div class="flex items-center">
-                        <h1 class="text-xl font-bold text-gray-900">
-                            <i class="fas fa-receipt mr-2"></i>WealthWatch
-                        </h1>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Auth Screens (no sidebar) -->
+    <div id="authWrapper">
+        <!-- Login Section -->
+        <div id="loginSection" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-600 to-brand-800">
+            <div class="bg-white shadow-2xl rounded-2xl p-8 w-full max-w-md">
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-14 h-14 bg-brand-100 rounded-xl mb-4">
+                        <i class="fas fa-chart-line text-brand-600 text-2xl"></i>
                     </div>
-                    <div class="flex items-center space-x-4">
-                        <button id="dashboardBtn" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100">Dashboard</button>
-                        <button id="expensesBtn" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100">Expenses</button>
-                        <button id="groupsBtn" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100">Groups</button>
-                        <button id="balancesBtn" class="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100">Balances</button>
-                        <button id="logoutBtn" class="px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50">Logout</button>
+                    <h1 class="text-2xl font-bold text-gray-900">WealthWatch</h1>
+                    <p class="text-gray-500 text-sm mt-1">Your unified financial dashboard</p>
+                </div>
+                <form id="loginForm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="loginEmail" required class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
                     </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="password" id="loginPassword" required class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+                    </div>
+                    <button type="submit" class="w-full bg-brand-600 text-white py-2.5 px-4 rounded-lg hover:bg-brand-700 font-medium transition">Sign In</button>
+                </form>
+                <div class="mt-5 text-center">
+                    <a href="#" id="showRegisterBtn" class="text-brand-600 hover:text-brand-800 text-sm font-medium">Create an account</a>
                 </div>
             </div>
-        </nav>
+        </div>
 
-        <!-- Main Content -->
-        <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            <!-- Login Section -->
-            <div id="loginSection" class="max-w-md mx-auto">
-                <div class="bg-white shadow rounded-lg p-6">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-6">Login to WealthWatch</h2>
-                    <form id="loginForm">
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                            <input type="email" id="loginEmail" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div class="mb-6">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                            <input type="password" id="loginPassword" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            Login
-                        </button>
-                    </form>
-                    <div class="mt-4 text-center">
-                        <a href="#" id="showRegisterBtn" class="text-blue-600 hover:text-blue-800">Don't have an account? Register</a>
+        <!-- Register Section -->
+        <div id="registerSection" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-600 to-brand-800 hidden">
+            <div class="bg-white shadow-2xl rounded-2xl p-8 w-full max-w-md">
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-14 h-14 bg-brand-100 rounded-xl mb-4">
+                        <i class="fas fa-chart-line text-brand-600 text-2xl"></i>
                     </div>
+                    <h1 class="text-2xl font-bold text-gray-900">Join WealthWatch</h1>
+                    <p class="text-gray-500 text-sm mt-1">Start tracking your finances today</p>
+                </div>
+                <form id="registerForm">
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                            <input type="text" id="registerFirstName" required class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                            <input type="text" id="registerLastName" required class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="registerEmail" required class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <input type="password" id="registerPassword" required minlength="6" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <button type="submit" class="w-full bg-brand-600 text-white py-2.5 px-4 rounded-lg hover:bg-brand-700 font-medium transition">Create Account</button>
+                </form>
+                <div class="mt-5 text-center">
+                    <a href="#" id="showLoginBtn" class="text-brand-600 hover:text-brand-800 text-sm font-medium">Already have an account? Sign in</a>
                 </div>
             </div>
-
-            <!-- Register Section -->
-            <div id="registerSection" class="max-w-md mx-auto hidden">
-                <div class="bg-white shadow rounded-lg p-6">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-6">Register for WealthWatch</h2>
-                    <form id="registerForm">
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
-                            <input type="text" id="registerFirstName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
-                            <input type="text" id="registerLastName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                            <input type="email" id="registerEmail" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div class="mb-6">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                            <input type="password" id="registerPassword" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            Register
-                        </button>
-                    </form>
-                    <div class="mt-4 text-center">
-                        <a href="#" id="showLoginBtn" class="text-blue-600 hover:text-blue-800">Already have an account? Login</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Dashboard Section -->
-            <div id="dashboardSection" class="hidden">
-                <div class="mb-8">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-2">Welcome back, <span id="userName"></span>!</h2>
-                    <p class="text-gray-600">Here's your expense sharing overview</p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-white shadow rounded-lg p-6">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0 bg-green-100 rounded-full p-3">
-                                <i class="fas fa-arrow-down text-green-600"></i>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-500">You're owed</p>
-                                <p class="text-2xl font-bold text-green-600">$<span id="totalOwed">0.00</span></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white shadow rounded-lg p-6">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0 bg-red-100 rounded-full p-3">
-                                <i class="fas fa-arrow-up text-red-600"></i>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-500">You owe</p>
-                                <p class="text-2xl font-bold text-red-600">$<span id="totalOwe">0.00</span></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white shadow rounded-lg p-6">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0 bg-blue-100 rounded-full p-3">
-                                <i class="fas fa-balance-scale text-blue-600"></i>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm font-medium text-gray-500">Total balance</p>
-                                <p class="text-2xl font-bold text-blue-600">$<span id="totalBalance">0.00</span></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white shadow rounded-lg p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Expenses</h3>
-                        <div id="recentExpenses" class="space-y-3">
-                            <!-- Expenses will be loaded here -->
-                        </div>
-                    </div>
-                    <div class="bg-white shadow rounded-lg p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Balances</h3>
-                        <div id="balanceList" class="space-y-3">
-                            <!-- Balances will be loaded here -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Expenses Section -->
-            <div id="expensesSection" class="hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-900">Expenses</h2>
-                    <button id="addExpenseBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-                        <i class="fas fa-plus mr-2"></i>Add Expense
-                    </button>
-                </div>
-                <div id="expensesList" class="bg-white shadow rounded-lg">
-                    <!-- Expenses will be loaded here -->
-                </div>
-            </div>
-
-            <!-- Groups Section -->
-            <div id="groupsSection" class="hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-900">Groups</h2>
-                    <button id="addGroupBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-                        <i class="fas fa-plus mr-2"></i>Add Group
-                    </button>
-                </div>
-                <div id="groupsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Groups will be loaded here -->
-                </div>
-            </div>
-
-            <!-- Balances Section -->
-            <div id="balancesSection" class="hidden">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Balances</h2>
-                <div id="balancesList" class="bg-white shadow rounded-lg">
-                    <!-- Detailed balances will be loaded here -->
-                </div>
-            </div>
-        </main>
+        </div>
     </div>
 
-    <!-- Add Expense Modal -->
-    <div id="expenseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Add New Expense</h3>
-            <form id="expenseForm">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
-                    <input type="text" id="expenseTitle" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <!-- App Shell (sidebar + content) -->
+    <div id="appShell" class="hidden flex min-h-screen">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-64 bg-white border-r border-gray-200 flex flex-col fixed h-full z-30">
+            <div class="p-5 border-b border-gray-100">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 bg-brand-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-white text-sm"></i>
+                    </div>
+                    <span class="text-lg font-bold text-gray-900">WealthWatch</span>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                    <select id="expenseCategory" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Select a category</option>
-                    </select>
+            </div>
+            <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+                <p class="px-3 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Overview</p>
+                <button data-page="dashboard" class="sidebar-link active w-full flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-700">
+                    <i class="fas fa-th-large w-5 mr-3 text-center"></i>Dashboard
+                </button>
+                <button data-page="networth" class="sidebar-link w-full flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-700">
+                    <i class="fas fa-coins w-5 mr-3 text-center"></i>Net Worth
+                </button>
+
+                <p class="px-3 pt-5 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Finance</p>
+                <button data-page="accounts" class="sidebar-link w-full flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-700">
+                    <i class="fas fa-university w-5 mr-3 text-center"></i>Accounts
+                </button>
+                <button data-page="investments" class="sidebar-link w-full flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-700">
+                    <i class="fas fa-chart-pie w-5 mr-3 text-center"></i>Investments
+                </button>
+                <button data-page="budgetExpenses" class="sidebar-link w-full flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-700">
+                    <i class="fas fa-receipt w-5 mr-3 text-center"></i>Transactions
+                </button>
+                <button data-page="budgets" class="sidebar-link w-full flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-700">
+                    <i class="fas fa-piggy-bank w-5 mr-3 text-center"></i>Budgets
+                </button>
+
+                <p class="px-3 pt-5 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Automation</p>
+                <button data-page="recurring" class="sidebar-link w-full flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-700">
+                    <i class="fas fa-sync-alt w-5 mr-3 text-center"></i>Recurring Bills
+                </button>
+                <button data-page="rules" class="sidebar-link w-full flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-700">
+                    <i class="fas fa-magic w-5 mr-3 text-center"></i>Auto Rules
+                </button>
+
+                <p class="px-3 pt-5 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Reports</p>
+                <button data-page="reports" class="sidebar-link w-full flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-700">
+                    <i class="fas fa-chart-bar w-5 mr-3 text-center"></i>Spending Trends
+                </button>
+                <button data-page="cashflow" class="sidebar-link w-full flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-700">
+                    <i class="fas fa-random w-5 mr-3 text-center"></i>Cash Flow
+                </button>
+
+                <p class="px-3 pt-5 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Sharing</p>
+                <button data-page="expenses" class="sidebar-link w-full flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-700">
+                    <i class="fas fa-split w-5 mr-3 text-center"></i>Split Expenses
+                </button>
+                <button data-page="groups" class="sidebar-link w-full flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-700">
+                    <i class="fas fa-users w-5 mr-3 text-center"></i>Groups
+                </button>
+                <button data-page="balances" class="sidebar-link w-full flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-700">
+                    <i class="fas fa-balance-scale w-5 mr-3 text-center"></i>Balances
+                </button>
+
+                <p class="px-3 pt-5 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">More</p>
+                <button data-page="receipts" class="sidebar-link w-full flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-700">
+                    <i class="fas fa-camera w-5 mr-3 text-center"></i>Receipts
+                </button>
+                <button data-page="family" class="sidebar-link w-full flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-700">
+                    <i class="fas fa-heart w-5 mr-3 text-center"></i>Family / Partner
+                </button>
+            </nav>
+            <div class="p-3 border-t border-gray-100">
+                <button id="logoutBtn" class="w-full flex items-center px-3 py-2.5 rounded-lg text-sm text-red-600 hover:bg-red-50">
+                    <i class="fas fa-sign-out-alt w-5 mr-3 text-center"></i>Sign Out
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 ml-64">
+            <!-- Top Bar -->
+            <header class="bg-white border-b border-gray-200 sticky top-0 z-20">
+                <div class="flex items-center justify-between px-6 h-16">
+                    <h2 id="pageTitle" class="text-lg font-semibold text-gray-900">Dashboard</h2>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm text-gray-500">Welcome, <span id="userName" class="font-medium text-gray-700"></span></span>
+                        <div class="w-8 h-8 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-sm font-bold" id="userAvatar"></div>
+                    </div>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Amount</label>
-                    <input type="number" id="expenseAmount" step="0.01" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </header>
+
+            <!-- Page Content -->
+            <main class="p-6">
+                <!-- Dashboard Page -->
+                <div id="page-dashboard" class="page-content">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
+                        <div class="stat-card bg-white rounded-xl shadow-sm border p-5">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500">Net Worth</p>
+                                    <p class="text-2xl font-bold mt-1" id="dashNetWorth">$0</p>
+                                </div>
+                                <div class="w-10 h-10 bg-brand-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-coins text-brand-600"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stat-card bg-white rounded-xl shadow-sm border p-5">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500">Total Assets</p>
+                                    <p class="text-2xl font-bold mt-1 text-green-600" id="dashAssets">$0</p>
+                                </div>
+                                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-arrow-trend-up text-green-600"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stat-card bg-white rounded-xl shadow-sm border p-5">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500">Total Liabilities</p>
+                                    <p class="text-2xl font-bold mt-1 text-red-600" id="dashLiabilities">$0</p>
+                                </div>
+                                <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-arrow-trend-down text-red-600"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stat-card bg-white rounded-xl shadow-sm border p-5">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-500">Savings Rate</p>
+                                    <p class="text-2xl font-bold mt-1 text-brand-600" id="dashSavingsRate">0%</p>
+                                </div>
+                                <div class="w-10 h-10 bg-brand-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-piggy-bank text-brand-600"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-white rounded-xl shadow-sm border p-5">
+                            <h3 class="font-semibold text-gray-900 mb-4">Spending Trends</h3>
+                            <div class="chart-container"><canvas id="dashSpendingChart"></canvas></div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border p-5">
+                            <h3 class="font-semibold text-gray-900 mb-4">Asset Allocation</h3>
+                            <div class="chart-container"><canvas id="dashAllocationChart"></canvas></div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border p-5">
+                            <h3 class="font-semibold text-gray-900 mb-4">Upcoming Bills</h3>
+                            <div id="dashUpcoming" class="space-y-3"></div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border p-5">
+                            <h3 class="font-semibold text-gray-900 mb-4">Recent Transactions</h3>
+                            <div id="dashRecentTx" class="space-y-3"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                    <textarea id="expenseDescription" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+
+                <!-- Net Worth Page -->
+                <div id="page-networth" class="page-content hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+                        <div class="bg-white rounded-xl shadow-sm border p-5">
+                            <p class="text-sm text-gray-500">Net Worth</p>
+                            <p class="text-3xl font-bold mt-1" id="nwTotal">$0</p>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border p-5">
+                            <p class="text-sm text-gray-500">Assets</p>
+                            <p class="text-3xl font-bold mt-1 text-green-600" id="nwAssets">$0</p>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border p-5">
+                            <p class="text-sm text-gray-500">Liabilities</p>
+                            <p class="text-3xl font-bold mt-1 text-red-600" id="nwLiabilities">$0</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border p-5 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-gray-900">Net Worth Over Time</h3>
+                            <button id="nwSnapshotBtn" class="text-sm bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700">Take Snapshot</button>
+                        </div>
+                        <div style="height:300px"><canvas id="nwChart"></canvas></div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-xl shadow-sm border p-5">
+                            <h3 class="font-semibold text-gray-900 mb-4">Assets Breakdown</h3>
+                            <div id="nwAssetsList" class="space-y-2"></div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border p-5">
+                            <h3 class="font-semibold text-gray-900 mb-4">Liabilities Breakdown</h3>
+                            <div id="nwLiabilitiesList" class="space-y-2"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Split With (User IDs, comma-separated)</label>
-                    <input type="text" id="expenseSplitWith" placeholder="e.g., 2,3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+
+                <!-- Accounts Page -->
+                <div id="page-accounts" class="page-content hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center space-x-3">
+                            <select id="accountFilterOwnership" class="text-sm border rounded-lg px-3 py-2">
+                                <option value="">All Ownership</option>
+                                <option value="yours">Yours</option>
+                                <option value="mine">Mine</option>
+                                <option value="ours">Ours</option>
+                            </select>
+                        </div>
+                        <button id="addAccountBtn" class="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 text-sm font-medium">
+                            <i class="fas fa-plus mr-2"></i>Add Account
+                        </button>
+                    </div>
+                    <div id="accountsList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
                 </div>
-                <div class="flex justify-end space-x-3">
-                    <button type="button" id="cancelExpenseBtn" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Add Expense</button>
+
+                <!-- Investments Page -->
+                <div id="page-investments" class="page-content hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
+                        <div class="bg-white rounded-xl shadow-sm border p-5">
+                            <p class="text-sm text-gray-500">Portfolio Value</p>
+                            <p class="text-2xl font-bold mt-1" id="invTotalValue">$0</p>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border p-5">
+                            <p class="text-sm text-gray-500">Cost Basis</p>
+                            <p class="text-2xl font-bold mt-1 text-gray-600" id="invCostBasis">$0</p>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border p-5">
+                            <p class="text-sm text-gray-500">Total Gain/Loss</p>
+                            <p class="text-2xl font-bold mt-1" id="invGainLoss">$0</p>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border p-5">
+                            <p class="text-sm text-gray-500">Return</p>
+                            <p class="text-2xl font-bold mt-1" id="invReturn">0%</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold">Holdings</h3>
+                        <button id="addHoldingBtn" class="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 text-sm font-medium">
+                            <i class="fas fa-plus mr-2"></i>Add Holding
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+                                <tr>
+                                    <th class="px-4 py-3 text-left">Symbol</th>
+                                    <th class="px-4 py-3 text-left">Name</th>
+                                    <th class="px-4 py-3 text-right">Qty</th>
+                                    <th class="px-4 py-3 text-right">Price</th>
+                                    <th class="px-4 py-3 text-right">Value</th>
+                                    <th class="px-4 py-3 text-right">Gain/Loss</th>
+                                    <th class="px-4 py-3 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="holdingsTable" class="divide-y"></tbody>
+                        </table>
+                    </div>
                 </div>
-            </form>
+
+                <!-- Budget Expenses (Transactions) Page -->
+                <div id="page-budgetExpenses" class="page-content hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center space-x-3">
+                            <select id="txFilterCategory" class="text-sm border rounded-lg px-3 py-2">
+                                <option value="">All Categories</option>
+                            </select>
+                            <input type="month" id="txFilterMonth" class="text-sm border rounded-lg px-3 py-2">
+                        </div>
+                        <button id="addBudgetExpenseBtn" class="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 text-sm font-medium">
+                            <i class="fas fa-plus mr-2"></i>Add Transaction
+                        </button>
+                    </div>
+                    <div id="budgetExpensesList" class="bg-white rounded-xl shadow-sm border overflow-hidden">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+                                <tr>
+                                    <th class="px-4 py-3 text-left">Date</th>
+                                    <th class="px-4 py-3 text-left">Title</th>
+                                    <th class="px-4 py-3 text-left">Merchant</th>
+                                    <th class="px-4 py-3 text-left">Category</th>
+                                    <th class="px-4 py-3 text-right">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="txTable" class="divide-y"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Budgets Page -->
+                <div id="page-budgets" class="page-content hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="font-semibold">Monthly Budget Overview</h3>
+                        <button id="addBudgetBtn" class="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 text-sm font-medium">
+                            <i class="fas fa-plus mr-2"></i>Set Budget
+                        </button>
+                    </div>
+                    <div id="budgetCards" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+                </div>
+
+                <!-- Recurring Bills Page -->
+                <div id="page-recurring" class="page-content hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <div></div>
+                        <button id="addRecurringBtn" class="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 text-sm font-medium">
+                            <i class="fas fa-plus mr-2"></i>Add Subscription
+                        </button>
+                    </div>
+                    <div id="recurringList" class="space-y-3"></div>
+                </div>
+
+                <!-- Auto Rules Page -->
+                <div id="page-rules" class="page-content hidden">
+                    <div class="flex items-center justify-between mb-6">
+                        <p class="text-sm text-gray-500">Set up if-then rules to automatically categorize transactions by merchant or amount.</p>
+                        <button id="addRuleBtn" class="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 text-sm font-medium">
+                            <i class="fas fa-plus mr-2"></i>Add Rule
+                        </button>
+                    </div>
+                    <div id="rulesList" class="space-y-3"></div>
+                </div>
+
+                <!-- Reports (Spending Trends) Page -->
+                <div id="page-reports" class="page-content hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-white rounded-xl shadow-sm border p-5">
+                            <h3 class="font-semibold text-gray-900 mb-4">Monthly Spending</h3>
+                            <div style="height:300px"><canvas id="reportSpendingChart"></canvas></div>
+                        </div>
+                        <div class="bg-white rounded-xl shadow-sm border p-5">
+                            <h3 class="font-semibold text-gray-900 mb-4">Top Merchants</h3>
+                            <div id="reportMerchants" class="space-y-3"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cash Flow (Sankey) Page -->
+                <div id="page-cashflow" class="page-content hidden">
+                    <div class="flex items-center space-x-3 mb-6">
+                        <input type="month" id="sankeyMonth" class="text-sm border rounded-lg px-3 py-2">
+                        <button id="loadSankeyBtn" class="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 text-sm font-medium">Load</button>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border p-5">
+                        <h3 class="font-semibold text-gray-900 mb-4">Cash Flow Diagram</h3>
+                        <div id="sankeyContainer" class="min-h-[400px]"></div>
+                    </div>
+                </div>
+
+                <!-- Split Expenses Page -->
+                <div id="page-expenses" class="page-content hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <div></div>
+                        <button id="addExpenseBtn" class="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 text-sm font-medium">
+                            <i class="fas fa-plus mr-2"></i>Add Expense
+                        </button>
+                    </div>
+                    <div id="expensesList" class="bg-white rounded-xl shadow-sm border"></div>
+                </div>
+
+                <!-- Groups Page -->
+                <div id="page-groups" class="page-content hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <div></div>
+                        <button id="addGroupBtn" class="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 text-sm font-medium">
+                            <i class="fas fa-plus mr-2"></i>Add Group
+                        </button>
+                    </div>
+                    <div id="groupsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+                </div>
+
+                <!-- Balances Page -->
+                <div id="page-balances" class="page-content hidden">
+                    <div id="balancesList" class="bg-white rounded-xl shadow-sm border"></div>
+                </div>
+
+                <!-- Receipts Page -->
+                <div id="page-receipts" class="page-content hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <p class="text-sm text-gray-500">Upload and manage receipts for tax or warranty purposes.</p>
+                        <button id="addReceiptBtn" class="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 text-sm font-medium">
+                            <i class="fas fa-upload mr-2"></i>Upload Receipt
+                        </button>
+                    </div>
+                    <div id="receiptsList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+                </div>
+
+                <!-- Family / Partner Page -->
+                <div id="page-family" class="page-content hidden">
+                    <div class="bg-white rounded-xl shadow-sm border p-6 mb-6">
+                        <h3 class="font-semibold text-gray-900 mb-2">Shared Access</h3>
+                        <p class="text-sm text-gray-500 mb-4">Invite your partner to view and manage your household finances. Each person has their own login with a shared view.</p>
+                        <button id="invitePartnerBtn" class="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 text-sm font-medium">
+                            <i class="fas fa-user-plus mr-2"></i>Invite Partner
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm border p-6">
+                        <h3 class="font-semibold text-gray-900 mb-4">Family Members</h3>
+                        <div id="familyMembersList" class="space-y-3"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Generic Modal -->
+    <div id="modal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between p-5 border-b">
+                <h3 id="modalTitle" class="text-lg font-semibold text-gray-900"></h3>
+                <button id="modalClose" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="modalBody" class="p-5"></div>
         </div>
     </div>
 

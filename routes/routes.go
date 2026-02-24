@@ -21,6 +21,12 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 	groupHandler := handlers.NewGroupHandler(db)
 	balanceHandler := handlers.NewBalanceHandler(db)
 	settlementHandler := handlers.NewSettlementHandler(db)
+	accountHandler := handlers.NewAccountHandler(db)
+	investmentHandler := handlers.NewInvestmentHandler(db)
+	recurringHandler := handlers.NewRecurringHandler(db)
+	autoRuleHandler := handlers.NewAutoRuleHandler(db)
+	receiptHandler := handlers.NewReceiptHandler(db)
+	reportHandler := handlers.NewReportHandler(db)
 
 	// Health check endpoint
 	r.GET("/health", func(c *gin.Context) {
@@ -72,6 +78,71 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 				budget.POST("/expenses", budgetTrackerHandler.CreateBudgetExpense)
 				// Reporting
 				budget.GET("/summary/monthly", budgetTrackerHandler.MonthlySummary)
+			}
+
+			// Account routes (Financial Dashboard)
+			accounts := protected.Group("/accounts")
+			{
+				accounts.GET("", accountHandler.ListAccounts)
+				accounts.POST("", accountHandler.CreateAccount)
+				accounts.GET("/:id", accountHandler.GetAccount)
+				accounts.PUT("/:id", accountHandler.UpdateAccount)
+				accounts.DELETE("/:id", accountHandler.DeleteAccount)
+			}
+
+			// Net Worth routes
+			networth := protected.Group("/networth")
+			{
+				networth.GET("/summary", accountHandler.GetNetWorthSummary)
+				networth.GET("/history", accountHandler.GetNetWorthHistory)
+				networth.POST("/snapshot", accountHandler.SnapshotNetWorth)
+			}
+
+			// Investment routes
+			investments := protected.Group("/investments")
+			{
+				investments.GET("", investmentHandler.ListHoldings)
+				investments.POST("", investmentHandler.CreateHolding)
+				investments.GET("/portfolio", investmentHandler.GetPortfolioSummary)
+				investments.PUT("/:id", investmentHandler.UpdateHolding)
+				investments.DELETE("/:id", investmentHandler.DeleteHolding)
+			}
+
+			// Recurring transaction routes
+			recurring := protected.Group("/recurring")
+			{
+				recurring.GET("", recurringHandler.ListRecurring)
+				recurring.POST("", recurringHandler.CreateRecurring)
+				recurring.GET("/upcoming", recurringHandler.GetUpcoming)
+				recurring.PUT("/:id", recurringHandler.UpdateRecurring)
+				recurring.DELETE("/:id", recurringHandler.DeleteRecurring)
+			}
+
+			// Auto-categorization rules
+			rules := protected.Group("/rules")
+			{
+				rules.GET("", autoRuleHandler.ListRules)
+				rules.POST("", autoRuleHandler.CreateRule)
+				rules.PUT("/:id", autoRuleHandler.UpdateRule)
+				rules.DELETE("/:id", autoRuleHandler.DeleteRule)
+			}
+
+			// Receipt routes
+			receipts := protected.Group("/receipts")
+			{
+				receipts.GET("", receiptHandler.ListReceipts)
+				receipts.POST("", receiptHandler.UploadReceipt)
+				receipts.GET("/:id", receiptHandler.GetReceipt)
+				receipts.DELETE("/:id", receiptHandler.DeleteReceipt)
+			}
+
+			// Reports routes
+			reports := protected.Group("/reports")
+			{
+				reports.GET("/spending-trends", reportHandler.SpendingTrends)
+				reports.GET("/spending-by-merchant", reportHandler.SpendingByMerchant)
+				reports.GET("/cashflow-sankey", reportHandler.CashFlowSankey)
+				reports.GET("/savings-rate", reportHandler.SavingsRate)
 			}
 
 			// Balance routes
