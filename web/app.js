@@ -169,7 +169,7 @@ class WealthWatchApp {
         this.$('appShell').classList.remove('hidden');
         this.$('appShell').classList.add('flex');
         try {
-            this.currentUser = await this.api('/profile');
+            this.currentUser = await this.api('/auth/profile');
             this.$('userName').textContent = this.currentUser.first_name;
             this.$('userAvatar').textContent = (this.currentUser.first_name[0]||'')+(this.currentUser.last_name[0]||'');
         } catch(err){ this.logout(); return; }
