@@ -265,6 +265,31 @@ docker build -t wealthwatch .
 docker run --rm -p 8080:8080 --env-file .env wealthwatch
 ```
 
+### Kubernetes (DigitalOcean DOKS / AWS EKS)
+
+Kubernetes manifests are provided under `k8s/` using Kustomize.
+
+- **Base manifests**: `k8s/base`
+- **DigitalOcean overlay**: `k8s/overlays/doks`
+- **AWS EKS overlay**: `k8s/overlays/eks`
+
+1) Build and push the Docker image to a registry (DOCR for DOKS, ECR for EKS, or any OCI registry)
+
+2) Update:
+
+- `k8s/base/app-deployment.yaml` with your image reference
+- `k8s/base/app-configmap.yaml` for DB connection values
+- `k8s/base/app-secret.yaml` for `DB_PASSWORD` and `JWT_SECRET`
+- `k8s/base/app-ingress.yaml` with your domain
+
+3) Apply:
+
+```bash
+kubectl apply -k k8s/overlays/doks
+# or
+kubectl apply -k k8s/overlays/eks
+```
+
 ### Makefile Targets
 
 ```bash

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wealthwatch-config
+  namespace: wealthwatch
+data:
+  DB_HOST: "postgres.example.internal"
+  DB_PORT: "5432"
+  DB_NAME: "wealthwatch_db"
+  DB_SSLMODE: "require"
+  JWT_EXPIRES_IN: "168h"
+  GIN_MODE: "release"
+  PORT: "8080"
