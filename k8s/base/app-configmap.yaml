@@ -9,5 +9,4 @@ data:
   DB_NAME: "wealthwatch_db"
   DB_SSLMODE: "disable"
   JWT_EXPIRES_IN: "168h"
-  GIN_MODE: "release"
   PORT: "8080"

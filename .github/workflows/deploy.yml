@@ -30,19 +30,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          go-version-file: go.mod
-          cache: true
+          python-version: "3.12"
+          cache: pip
 
-      - name: Build
-        run: go build .
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Test
-        run: |
-          packages=$(go list ./... | grep -v '/pkg')
-          go test -v $packages
+        run: python -m pytest tests/ -v --tb=short
+        env:
+          JWT_SECRET: ci-test-secret
+          DB_HOST: localhost
+          DB_PASSWORD: test
 
   push:
     name: Build & Push Docker Image

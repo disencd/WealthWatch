@@ -1,6 +1,6 @@
 # WealthWatch - Personal Finance Dashboard
 
-A comprehensive personal finance dashboard built with Go, PostgreSQL, and a modern web UI. Track accounts, net worth, investments, budgets, recurring bills, receipts, and more — with shared access for couples.
+A comprehensive personal finance dashboard built with Python (FastAPI), PostgreSQL, and a modern web UI. Track accounts, net worth, investments, budgets, recurring bills, receipts, and more — with shared access for couples.
 
 ## Features
 
@@ -19,39 +19,51 @@ A comprehensive personal finance dashboard built with Go, PostgreSQL, and a mode
 
 ## Tech Stack
 
-- **Backend**: Go with Gin framework
-- **Database**: PostgreSQL with GORM ORM
+- **Backend**: Python 3.12 with FastAPI
+- **ORM**: SQLAlchemy 2.0 (async) with Pydantic v2 schemas
+- **Database**: PostgreSQL with asyncpg driver
 - **Frontend**: Vanilla JavaScript SPA, Tailwind CSS, Chart.js
-- **Authentication**: JWT tokens with bcrypt password hashing
+- **Authentication**: JWT (python-jose) with bcrypt password hashing (passlib)
 - **Containerization**: Multi-stage Docker build
+- **Testing**: pytest
 
 ## Project Structure
 
 ```
 wealthwatch/
-├── main.go              # Application entry point
-├── go.mod               # Go module file
-├── Dockerfile           # Multi-stage Docker build
-├── Makefile             # Build, run, test commands
-├── .env.example         # Environment variables template
-├── config/              # Configuration management
-├── database/            # Database connection and setup
-├── models/              # Data models (User, Account, Budget, Investment, etc.)
-├── handlers/            # HTTP request handlers
-├── services/            # Business logic services
-├── middleware/           # Auth & role middleware
-├── routes/              # Route definitions
+├── app/                 # Python application package
+│   ├── main.py          # FastAPI app entry point
+│   ├── config.py        # Settings via pydantic-settings
+│   ├── database.py      # SQLAlchemy async engine & session
+│   ├── models.py        # All SQLAlchemy 2.0 models
+│   ├── auth.py          # JWT, password hashing, auth deps
+│   └── routers/         # FastAPI routers
+│       ├── auth.py      # Register, login, profile
+│       ├── family.py    # Family CRUD & members
+│       ├── budget.py    # Categories, budgets, expenses, CSV import
+│       ├── account.py   # Accounts & net worth
+│       ├── investment.py # Holdings & portfolio
+│       ├── recurring.py # Recurring transactions
+│       ├── rules.py     # Auto-categorization rules
+│       ├── receipts.py  # Receipt upload
+│       ├── reports.py   # Spending trends, Sankey, savings rate
+│       ├── expenses.py  # Shared expenses & splits
+│       ├── groups.py    # Groups
+│       ├── balances.py  # Balance calculations
+│       └── settlements.py # Settlements
+├── tests/               # pytest test suite
 ├── web/                 # Frontend (index.html, app.js)
-│   ├── index.html       # SPA with sidebar navigation
-│   └── app.js           # Client-side logic, charts, modals
-└── utils/               # Utility functions
+├── requirements.txt     # Python dependencies
+├── Dockerfile           # Multi-stage Docker build
+├── docker-compose.yml   # Local dev stack
+└── k8s/                 # Kubernetes manifests (Kustomize)
 ```
 
 ## Getting Started
 
 ### Prerequisites
 
-- Go 1.21 or higher
+- Python 3.12+
 - PostgreSQL database
 - Git
 
@@ -63,35 +75,29 @@ git clone <repository-url>
 cd wealthwatch
 ```
 
-2. Copy environment variables:
-```bash
-cp .env.example .env
-```
-
-3. Edit `.env` file with your database and JWT configuration:
+2. Create a `.env` file with your configuration:
 ```env
-# Database Configuration
 DB_HOST=localhost
 DB_PORT=5432
-DB_USER=your_db_user
+DB_USER=wealthwatch_user
 DB_PASSWORD=your_db_password
 DB_NAME=wealthwatch_db
-
-# JWT Configuration
 JWT_SECRET=your_super_secret_jwt_key_here
 ```
 
-4. Install dependencies:
+3. Install dependencies:
 ```bash
-go mod download
+pip install -r requirements.txt
 ```
 
-5. Run the application:
+4. Run the application:
 ```bash
-go run main.go
+uvicorn app.main:app --host 0.0.0.0 --port 8080
 ```
 
 The server will start on `http://localhost:8080`
+
+API docs available at `http://localhost:8080/docs` (Swagger UI)
 
 ## API Endpoints
 
@@ -254,8 +260,14 @@ curl -X POST http://localhost:8080/api/v1/receipts \
 ### Run Locally
 
 ```bash
-go mod download
-go run main.go        # starts on :8080
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8080
+```
+
+### Run Tests
+
+```bash
+python -m pytest tests/ -v
 ```
 
 ### Docker
@@ -263,6 +275,12 @@ go run main.go        # starts on :8080
 ```bash
 docker build -t wealthwatch .
 docker run --rm -p 8080:8080 --env-file .env wealthwatch
+```
+
+### Docker Compose (full stack)
+
+```bash
+docker-compose up --build
 ```
 
 ### Kubernetes (DigitalOcean DOKS / AWS EKS)
@@ -290,21 +308,9 @@ kubectl apply -k k8s/overlays/doks
 kubectl apply -k k8s/overlays/eks
 ```
 
-### Makefile Targets
-
-```bash
-make setup       # install tools
-make deps        # download dependencies
-make build       # compile binary
-make run         # run locally
-make test        # run tests
-make docker-build
-make docker-run
-```
-
 ### Database Migrations
 
-Auto-migrated on startup via GORM `AutoMigrate`.
+All tables are auto-created on startup via SQLAlchemy `Base.metadata.create_all`.
 
 ## Contributing
 

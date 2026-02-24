@@ -22,7 +22,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # WealthWatch Application
+  # WealthWatch Application (Python / FastAPI)
   app:
     build: .
     container_name: wealthwatch-app
@@ -37,7 +37,6 @@ services:
       - DB_SSLMODE=disable
       - JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
       - JWT_EXPIRES_IN=168h
-      - GIN_MODE=release
       - PORT=8080
     depends_on:
       postgres:
