@@ -1,16 +1,14 @@
 name: Deploy
 
 on:
+  push:
+    branches: ["main"]
   workflow_dispatch:
     inputs:
-      environment:
-        description: "Deployment environment name (e.g. doks, eks)"
-        required: true
-        default: "doks"
       overlay:
         description: "Kustomize overlay path"
         required: true
-        default: "k8s/overlays/doks"
+        default: "k8s/overlays/doks-basic"
 
 permissions:
   contents: read
@@ -20,11 +18,38 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
+env:
+  DOKS_CLUSTER_NAME: wealthwatch-doks
+  IMAGE_NAME: ghcr.io/${{ github.repository }}/wealthwatch
 
+jobs:
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build
+        run: go build .
+
+      - name: Test
+        run: |
+          packages=$(go list ./... | grep -v '/pkg')
+          go test -v $packages
+
+  push:
+    name: Build & Push Docker Image
+    needs: build
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,9 +68,10 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}/wealthwatch
+          images: ${{ env.IMAGE_NAME }}
           tags: |
             type=sha
+            type=ref,event=branch
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -54,34 +80,42 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to DOKS
+    needs: push
+    runs-on: ubuntu-latest
+    environment: doks
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Save DOKS kubeconfig
+        run: |
+          doctl kubernetes cluster kubeconfig save "$DOKS_CLUSTER_NAME"
 
       - name: Setup kubectl
         uses: azure/setup-kubectl@v4
         with:
           version: v1.29.0
 
-      - name: Configure kubeconfig
-        env:
-          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
-        run: |
-          set -euo pipefail
-          if [ -z "${KUBECONFIG_B64}" ]; then
-            echo "Missing secret KUBECONFIG_B64" >&2
-            exit 1
-          fi
-          mkdir -p "$HOME/.kube"
-          echo "$KUBECONFIG_B64" | base64 --decode > "$HOME/.kube/config"
-          chmod 600 "$HOME/.kube/config"
-          kubectl version --client
-
       - name: Deploy manifests
         run: |
           set -euo pipefail
-          kubectl apply -k "${{ inputs.overlay }}"
+          overlay="${{ inputs.overlay || 'k8s/overlays/doks-basic' }}"
+          kubectl apply -k "$overlay"
 
-      - name: Update image
+      - name: Update image & wait for rollout
         run: |
           set -euo pipefail
-          image=$(echo "${{ steps.meta.outputs.tags }}" | head -n 1)
-          kubectl -n wealthwatch set image deployment/wealthwatch wealthwatch="$image" --record
+          image=$(echo "${{ needs.push.outputs.image_tag }}" | head -n 1)
+          kubectl -n wealthwatch set image deployment/wealthwatch "wealthwatch=$image"
           kubectl -n wealthwatch rollout status deployment/wealthwatch --timeout=180s
