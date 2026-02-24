@@ -3,12 +3,10 @@ import os
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.requests import Request
 
 from app.auth import get_current_user
 from app.config import get_settings
@@ -52,20 +50,25 @@ app.include_router(groups.router)
 app.include_router(balances.router)
 app.include_router(settlements.router)
 
-# Serve static web UI
+# Serve SvelteKit SPA
 WEB_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web")
 if os.path.isdir(WEB_DIR):
-    templates = Jinja2Templates(directory=WEB_DIR)
+    app.mount("/_app", StaticFiles(directory=os.path.join(WEB_DIR, "_app")), name="svelte-assets")
 
-    @app.get("/app.js", include_in_schema=False)
-    async def app_js():
-        path = os.path.join(WEB_DIR, "app.js")
-        with open(path) as f:
-            return HTMLResponse(content=f.read(), media_type="application/javascript")
-
-    @app.get("/", include_in_schema=False)
-    async def index(request: Request):
-        return templates.TemplateResponse("index.html", {"request": request})
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa_fallback(full_path: str):
+        # Try to serve static file first
+        file_path = os.path.join(WEB_DIR, full_path)
+        if full_path and os.path.isfile(file_path):
+            import mimetypes
+            mt, _ = mimetypes.guess_type(file_path)
+            with open(file_path, "rb") as f:
+                from fastapi.responses import Response
+                return Response(content=f.read(), media_type=mt or "application/octet-stream")
+        # Fall back to index.html for SPA client-side routing
+        index_path = os.path.join(WEB_DIR, "index.html")
+        with open(index_path) as f:
+            return HTMLResponse(content=f.read())
 
 
 @app.get("/api/v1/profile", tags=["auth"])

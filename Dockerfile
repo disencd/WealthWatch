@@ -1,4 +1,13 @@
-# Build stage – install Python dependencies
+# Stage 1 – Build SvelteKit frontend
+FROM node:22-slim AS frontend-builder
+
+WORKDIR /frontend
+COPY frontend/package.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2 – Install Python dependencies
 FROM python:3.12-slim AS builder
 
 WORKDIR /install
@@ -22,7 +31,12 @@ COPY --from=builder /install/deps /usr/local
 
 # Copy application code
 COPY app/ ./app/
-COPY web/ ./web/
+
+# Copy SvelteKit build output as the web directory
+COPY --from=frontend-builder /frontend/build ./web/
+
+# Keep legacy web/ as fallback (if needed)
+# COPY web/ ./web-legacy/
 
 # Create receipts directory
 RUN mkdir -p /app/receipts && chown -R appuser:appuser /app
