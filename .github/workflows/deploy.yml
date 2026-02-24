@@ -107,6 +107,16 @@ jobs:
         with:
           version: v1.29.0
 
+      - name: Create GHCR image pull secret
+        run: |
+          set -euo pipefail
+          kubectl create namespace wealthwatch --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n wealthwatch create secret docker-registry ghcr-login \
+            --docker-server=ghcr.io \
+            --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.GITHUB_TOKEN }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Deploy manifests
         run: |
           set -euo pipefail
@@ -118,4 +128,4 @@ jobs:
           set -euo pipefail
           image=$(echo "${{ needs.push.outputs.image_tag }}" | head -n 1)
           kubectl -n wealthwatch set image deployment/wealthwatch "wealthwatch=$image"
-          kubectl -n wealthwatch rollout status deployment/wealthwatch --timeout=180s
+          kubectl -n wealthwatch rollout status deployment/wealthwatch --timeout=300s

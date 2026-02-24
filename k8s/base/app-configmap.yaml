@@ -4,10 +4,10 @@ metadata:
   name: wealthwatch-config
   namespace: wealthwatch
 data:
-  DB_HOST: "postgres.example.internal"
+  DB_HOST: "postgres.wealthwatch.svc.cluster.local"
   DB_PORT: "5432"
   DB_NAME: "wealthwatch_db"
-  DB_SSLMODE: "require"
+  DB_SSLMODE: "disable"
   JWT_EXPIRES_IN: "168h"
   GIN_MODE: "release"
   PORT: "8080"
