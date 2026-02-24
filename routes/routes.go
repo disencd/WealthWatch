@@ -67,6 +67,8 @@ func SetupRoutes(r *gin.Engine, db *gorm.DB) {
 				// Categories
 				budget.GET("/categories", budgetTrackerHandler.ListCategories)
 				budget.POST("/categories", middleware.RequireRole(string(models.FamilyRoleSuperAdmin), string(models.FamilyRoleAdmin)), budgetTrackerHandler.CreateCategory)
+				budget.POST("/import/categories-csv", middleware.RequireRole(string(models.FamilyRoleSuperAdmin), string(models.FamilyRoleAdmin)), budgetTrackerHandler.ImportCategoriesCSV)
+				budget.POST("/import/monthly-csv", middleware.RequireRole(string(models.FamilyRoleSuperAdmin), string(models.FamilyRoleAdmin)), budgetTrackerHandler.ImportMonthlyCSV)
 				// Sub-categories
 				budget.GET("/subcategories", budgetTrackerHandler.ListSubCategories)
 				budget.POST("/subcategories", middleware.RequireRole(string(models.FamilyRoleSuperAdmin), string(models.FamilyRoleAdmin)), budgetTrackerHandler.CreateSubCategory)

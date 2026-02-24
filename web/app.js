@@ -78,6 +78,50 @@ class WealthWatchApp {
         this.$('accountFilterOwnership').addEventListener('change', () => this.loadAccounts());
         this.$('txFilterCategory').addEventListener('change', () => this.loadBudgetExpenses());
         this.$('txFilterMonth').addEventListener('change', () => this.loadBudgetExpenses());
+
+        const importInfoBtn = this.$('importInfoCsvBtn');
+        if (importInfoBtn) importInfoBtn.addEventListener('click', () => this.importInfoCsv());
+        const importMonthlyBtn = this.$('importMonthlyCsvBtn');
+        if (importMonthlyBtn) importMonthlyBtn.addEventListener('click', () => this.importMonthlyCsvs());
+    }
+
+    async importInfoCsv() {
+        const input = this.$('importInfoCsvFile');
+        if (!input || !input.files || input.files.length === 0) {
+            this.notify('Choose an Info CSV file first', 'error');
+            return;
+        }
+
+        const fd = new FormData();
+        fd.append('file', input.files[0]);
+        try {
+            const res = await this.api('/budget/import/categories-csv', { method: 'POST', body: fd, headers: {} });
+            await this.loadCategoriesCache();
+            this.notify(`Imported categories: ${res.created_categories || 0}, sub-categories: ${res.created_sub_categories || 0}`, 'success');
+            input.value = '';
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async importMonthlyCsvs() {
+        const input = this.$('importMonthlyCsvFiles');
+        if (!input || !input.files || input.files.length === 0) {
+            this.notify('Choose one or more monthly CSV files first', 'error');
+            return;
+        }
+
+        const fd = new FormData();
+        for (const f of input.files) fd.append('files', f);
+        try {
+            const res = await this.api('/budget/import/monthly-csv', { method: 'POST', body: fd, headers: {} });
+            await this.loadCategoriesCache();
+            await this.loadBudgetExpenses();
+            this.notify(`Imported transactions: ${res.created_budget_expenses || 0}`, 'success');
+            input.value = '';
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     async handleLogin(e) {
