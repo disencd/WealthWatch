@@ -223,8 +223,6 @@ class Expense(TimestampMixin, Base):
     payer_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     group_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("groups.id"))
     category: Mapped[Optional[str]] = mapped_column(String, default="")
-    receipt: Mapped[Optional[str]] = mapped_column(String, default="")
-
     payer: Mapped["User"] = relationship(foreign_keys=[payer_id], back_populates="expenses")
     group: Mapped[Optional["Group"]] = relationship(back_populates="expenses")
     splits: Mapped[List["Split"]] = relationship(back_populates="expense")
@@ -352,22 +350,3 @@ class AutoCategoryRule(TimestampMixin, Base):
     category: Mapped["Category"] = relationship()
     sub_category: Mapped[Optional["SubCategory"]] = relationship()
 
-
-class Receipt(TimestampMixin, Base):
-    __tablename__ = "receipts"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    family_id: Mapped[int] = mapped_column(Integer, ForeignKey("families.id"), nullable=False, index=True)
-    created_by_user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    budget_expense_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("budget_expenses.id"), index=True)
-    file_name: Mapped[str] = mapped_column(String, nullable=False)
-    file_path: Mapped[str] = mapped_column(String, nullable=False)
-    file_size: Mapped[Optional[int]] = mapped_column(BigInteger, default=0)
-    mime_type: Mapped[Optional[str]] = mapped_column(String, default="")
-    merchant: Mapped[Optional[str]] = mapped_column(String, default="")
-    amount: Mapped[Optional[float]] = mapped_column(Float)
-    date: Mapped[Optional[datetime]] = mapped_column(DateTime)
-    notes: Mapped[Optional[str]] = mapped_column(Text, default="")
-
-    family: Mapped["Family"] = relationship()
-    budget_expense: Mapped[Optional["BudgetExpense"]] = relationship()

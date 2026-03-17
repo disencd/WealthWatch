@@ -1,35 +1,55 @@
 import logging
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_user
 from app.config import get_settings
-from app.database import get_db, init_db
+from app.database import get_db, init_db, dispose_engine, engine
 from app.models import User
 from app.routers import (
     auth, family, budget, account, investment,
-    recurring, rules, receipts, reports,
+    recurring, rules, reports,
     expenses, groups, balances, settlements,
 )
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ── Startup ──
+    settings = get_settings()
+    logger.info("Starting WealthWatch (Python/FastAPI)")
+    if settings.is_cloud_run:
+        logger.info("Running on Cloud Run (service=%s)", settings.K_SERVICE)
+    logger.info("Database: %s@%s/%s", settings.DB_USER, settings.DB_HOST, settings.DB_NAME)
+    await init_db()
+    logger.info("Database tables ready")
+    yield
+    # ── Shutdown ──
+    await dispose_engine()
+    logger.info("Database connections closed")
+
+
 app = FastAPI(
     title="WealthWatch",
     description="Personal finance & expense tracking API",
     version="2.0.0",
+    lifespan=lifespan,
 )
 
+settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -43,14 +63,13 @@ app.include_router(account.router)
 app.include_router(investment.router)
 app.include_router(recurring.router)
 app.include_router(rules.router)
-app.include_router(receipts.router)
 app.include_router(reports.router)
 app.include_router(expenses.router)
 app.include_router(groups.router)
 app.include_router(balances.router)
 app.include_router(settlements.router)
 
-# Serve SvelteKit SPA
+# Serve SvelteKit SPA (only when web/ dir exists — skipped on Cloud Run API-only deploy)
 WEB_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web")
 if os.path.isdir(WEB_DIR):
     app.mount("/_app", StaticFiles(directory=os.path.join(WEB_DIR, "_app")), name="svelte-assets")
@@ -58,7 +77,10 @@ if os.path.isdir(WEB_DIR):
     @app.get("/{full_path:path}", include_in_schema=False)
     async def spa_fallback(full_path: str):
         # Try to serve static file first
-        file_path = os.path.join(WEB_DIR, full_path)
+        file_path = os.path.realpath(os.path.join(WEB_DIR, full_path))
+        # Prevent path traversal
+        if not file_path.startswith(os.path.realpath(WEB_DIR)):
+            raise HTTPException(403, "Forbidden")
         if full_path and os.path.isfile(file_path):
             import mimetypes
             mt, _ = mimetypes.guess_type(file_path)
@@ -88,14 +110,10 @@ async def profile_shortcut(
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
-
-
-@app.on_event("startup")
-async def startup():
-    settings = get_settings()
-    logger.info("Starting WealthWatch (Python/FastAPI)")
-    logger.info("Database: %s@%s:%s/%s", settings.DB_USER, settings.DB_HOST, settings.DB_PORT, settings.DB_NAME)
-    await init_db()
-    logger.info("Database tables ready")
-    logger.info("Web UI available at http://localhost:%s", settings.PORT)
+    """Health check — verifies DB connectivity on Cloud Run."""
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        return {"status": "ok"}
+    except Exception:
+        return {"status": "degraded", "db": "unreachable"}

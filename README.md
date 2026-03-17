@@ -1,6 +1,6 @@
 # WealthWatch - Personal Finance Dashboard
 
-A comprehensive personal finance dashboard built with Python (FastAPI), PostgreSQL, and a SvelteKit frontend. Track accounts, net worth, investments, budgets, recurring bills, receipts, and more — with shared access for couples.
+A comprehensive personal finance dashboard built with Python (FastAPI), PostgreSQL, and a SvelteKit frontend. Track accounts, net worth, investments, budgets, recurring bills, and more — with shared access for couples.
 
 ## Features
 
@@ -10,7 +10,6 @@ A comprehensive personal finance dashboard built with Python (FastAPI), PostgreS
 - **Advanced Budgeting**: Custom categories, sub-categories, and monthly budget tracking with progress bars
 - **Auto-Categorization Rules**: If-then rules to categorize transactions by merchant pattern and amount range
 - **Recurring Bill Tracking**: Monitor subscriptions and upcoming bills with due-date alerts
-- **Receipt Management**: Upload and attach receipt images/PDFs to transactions
 - **Cash Flow Visualization**: Sankey-style income-to-expense flow diagrams by month
 - **Spending Reports**: Monthly trends, top merchants, and savings rate calculations
 - **Expense Splitting**: Split expenses with friends/groups (equal, exact, percentage)
@@ -45,7 +44,6 @@ wealthwatch/
 │       ├── investment.py    # Holdings & portfolio
 │       ├── recurring.py     # Recurring transactions
 │       ├── rules.py         # Auto-categorization rules
-│       ├── receipts.py      # Receipt upload
 │       ├── reports.py       # Spending trends, Sankey, savings rate
 │       ├── expenses.py      # Shared expenses & splits
 │       ├── groups.py        # Groups
@@ -75,7 +73,6 @@ wealthwatch/
 │   │           ├── expenses/
 │   │           ├── groups/
 │   │           ├── balances/
-│   │           ├── receipts/
 │   │           └── family/
 │   ├── svelte.config.js     # Static adapter config
 │   ├── vite.config.ts       # TailwindCSS v4 + API proxy
@@ -84,7 +81,6 @@ wealthwatch/
 ├── requirements.txt         # Python dependencies
 ├── Dockerfile               # Multi-stage build (Node → Python)
 ├── docker-compose.yml       # Local dev stack
-└── k8s/                     # Kubernetes manifests (Kustomize)
 ```
 
 ## Getting Started
@@ -181,12 +177,6 @@ All endpoints below (except Auth and Health) require a valid JWT in the `Authori
 - `PUT /api/v1/rules/:id` - Update rule
 - `DELETE /api/v1/rules/:id` - Delete rule
 
-### Receipts
-- `GET /api/v1/receipts` - List receipts
-- `POST /api/v1/receipts` - Upload receipt (multipart form: `file`, `merchant`, `amount`, `date`, `notes`)
-- `GET /api/v1/receipts/:id` - Get receipt metadata
-- `DELETE /api/v1/receipts/:id` - Delete receipt and file
-
 ### Reports
 - `GET /api/v1/reports/spending-trends?months=N` - Monthly spending totals
 - `GET /api/v1/reports/spending-by-merchant?limit=N` - Top merchants by spend
@@ -236,7 +226,6 @@ The application uses the following entities (auto-migrated on startup):
 - **BudgetExpense** - Individual transactions linked to categories
 - **RecurringTransaction** - Subscriptions and recurring bills
 - **AutoCategoryRule** - Merchant-pattern-based auto-categorization
-- **Receipt** - Uploaded receipt files with metadata
 - **Group / GroupMember** - Groups for expense splitting
 - **Expense / Split** - Shared expenses with splits
 - **Settlement** - Payments between users
@@ -273,17 +262,6 @@ curl -X POST http://localhost:8080/api/v1/networth/snapshot \
   -H "Authorization: Bearer <token>"
 ```
 
-### Upload a Receipt
-
-```bash
-curl -X POST http://localhost:8080/api/v1/receipts \
-  -H "Authorization: Bearer <token>" \
-  -F "file=@receipt.jpg" \
-  -F "merchant=Costco" \
-  -F "amount=142.50" \
-  -F "date=2025-01-15"
-```
-
 ## Development
 
 ### Backend
@@ -316,31 +294,6 @@ docker compose up --build
 ```
 
 The multi-stage Dockerfile builds the SvelteKit frontend (Node 22), installs Python deps, and copies the static build into the final image. FastAPI serves the SPA with a catch-all fallback to `index.html`.
-
-### Kubernetes (DigitalOcean DOKS / AWS EKS)
-
-Kubernetes manifests are provided under `k8s/` using Kustomize.
-
-- **Base manifests**: `k8s/base`
-- **DigitalOcean overlay**: `k8s/overlays/doks`
-- **AWS EKS overlay**: `k8s/overlays/eks`
-
-1) Build and push the Docker image to a registry (DOCR for DOKS, ECR for EKS, or any OCI registry)
-
-2) Update:
-
-- `k8s/base/app-deployment.yaml` with your image reference
-- `k8s/base/app-configmap.yaml` for DB connection values
-- `k8s/base/app-secret.yaml` for `DB_PASSWORD` and `JWT_SECRET`
-- `k8s/base/app-ingress.yaml` with your domain
-
-3) Apply:
-
-```bash
-kubectl apply -k k8s/overlays/doks
-# or
-kubectl apply -k k8s/overlays/eks
-```
 
 ### Database Migrations
 

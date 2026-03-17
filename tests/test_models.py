@@ -8,7 +8,7 @@ from app.models import (
     User, Family, FamilyMembership, Category, SubCategory,
     Budget, BudgetExpense, Group, GroupMember, Expense, Split,
     Settlement, Account, InvestmentHolding, NetWorthSnapshot,
-    RecurringTransaction, AutoCategoryRule, Receipt,
+    RecurringTransaction, AutoCategoryRule,
     CategoryType, BudgetPeriod, AccountType, AccountOwnership,
     InvestmentType, RecurringFrequency, FamilyRole,
 )
@@ -32,7 +32,6 @@ def test_table_names():
     assert NetWorthSnapshot.__tablename__ == "net_worth_snapshots"
     assert RecurringTransaction.__tablename__ == "recurring_transactions"
     assert AutoCategoryRule.__tablename__ == "auto_category_rules"
-    assert Receipt.__tablename__ == "receipts"
 
 
 def test_enums():
@@ -47,7 +46,7 @@ def test_enums():
 
 
 def test_model_count():
-    """Ensure we have all 18 models."""
+    """Ensure we have all 17 models."""
     from app.database import Base
     tables = Base.metadata.tables
-    assert len(tables) == 18, f"Expected 18 tables, got {len(tables)}: {list(tables.keys())}"
+    assert len(tables) == 17, f"Expected 17 tables, got {len(tables)}: {list(tables.keys())}"

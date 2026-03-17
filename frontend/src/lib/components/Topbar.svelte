@@ -16,7 +16,6 @@
     '/expenses': 'Split Expenses',
     '/groups': 'Groups',
     '/balances': 'Balances',
-    '/receipts': 'Receipts',
     '/family': 'Family / Partner'
   };
 

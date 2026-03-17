@@ -38,8 +38,8 @@ COPY --from=frontend-builder /frontend/build ./web/
 # Keep legacy web/ as fallback (if needed)
 # COPY web/ ./web-legacy/
 
-# Create receipts directory
-RUN mkdir -p /app/receipts && chown -R appuser:appuser /app
+# Create app directory
+RUN chown -R appuser:appuser /app
 
 USER appuser
 

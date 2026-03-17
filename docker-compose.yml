@@ -43,8 +43,6 @@ services:
         condition: service_healthy
     networks:
       - wealthwatch-network
-    volumes:
-      - ./receipts:/app/receipts
     restart: unless-stopped
 
   # Redis for caching (optional)

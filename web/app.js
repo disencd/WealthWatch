@@ -71,7 +71,6 @@ class WealthWatchApp {
         this.$('addRuleBtn').addEventListener('click', () => this.showRuleForm());
         this.$('addExpenseBtn').addEventListener('click', () => this.showSplitExpenseForm());
         this.$('addGroupBtn').addEventListener('click', () => this.handleAddGroup());
-        this.$('addReceiptBtn').addEventListener('click', () => this.showReceiptForm());
         this.$('invitePartnerBtn').addEventListener('click', () => this.showInviteForm());
         this.$('nwSnapshotBtn').addEventListener('click', () => this.takeNetWorthSnapshot());
         this.$('loadSankeyBtn').addEventListener('click', () => this.loadCashFlow());
@@ -188,7 +187,7 @@ class WealthWatchApp {
         dashboard:'Dashboard', networth:'Net Worth', accounts:'Accounts', investments:'Investments',
         budgetExpenses:'Transactions', budgets:'Budgets', recurring:'Recurring Bills', rules:'Auto Rules',
         reports:'Spending Trends', cashflow:'Cash Flow', expenses:'Split Expenses', groups:'Groups',
-        balances:'Balances', receipts:'Receipts', family:'Family / Partner'
+        balances:'Balances', family:'Family / Partner'
     };
 
     navigate(page) {
@@ -214,7 +213,6 @@ class WealthWatchApp {
             expenses: () => this.loadSplitExpenses(),
             groups: () => this.loadGroups(),
             balances: () => this.loadBalances(),
-            receipts: () => this.loadReceipts(),
             family: () => this.loadFamily(),
         };
         if (loaders[page]) loaders[page]();
@@ -888,57 +886,6 @@ class WealthWatchApp {
                     </div>
                 </div>`).join('') : '<p class="text-gray-400 text-center py-8">No balances to show.</p>';
         } catch(e) { console.error(e); }
-    }
-
-    // ── Receipts ────────────────────────────────────────────
-    async loadReceipts() {
-        try {
-            const receipts = await this.api('/receipts');
-            const arr = Array.isArray(receipts) ? receipts : [];
-            this.$('receiptsList').innerHTML = arr.length ? arr.map(r => `
-                <div class="bg-white rounded-xl shadow-sm border p-5">
-                    <div class="flex items-center space-x-3 mb-3">
-                        <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center"><i class="fas fa-file-image text-gray-500"></i></div>
-                        <div>
-                            <p class="font-medium text-sm">${r.file_name}</p>
-                            <p class="text-xs text-gray-400">${r.merchant || 'No merchant'} ${r.amount ? '&middot; ' + this.money(r.amount) : ''}</p>
-                        </div>
-                    </div>
-                    ${r.notes ? `<p class="text-sm text-gray-500 mb-2">${r.notes}</p>` : ''}
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs text-gray-400">${this.fmtDate(r.created_at)}</span>
-                        <button onclick="app.deleteReceipt(${r.id})" class="text-xs text-red-500 hover:underline">Delete</button>
-                    </div>
-                </div>`).join('') : '<p class="text-gray-400 text-center py-8 col-span-full">No receipts uploaded yet.</p>';
-        } catch(e) { console.error(e); }
-    }
-
-    showReceiptForm() {
-        this.openModal('Upload Receipt', `
-            <form id="receiptForm" class="space-y-4">
-                <div><label class="block text-sm font-medium mb-1">File</label><input name="file" type="file" accept="image/*,.pdf" required class="w-full border rounded-lg px-3 py-2 text-sm"></div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-sm font-medium mb-1">Merchant</label><input name="merchant" class="w-full border rounded-lg px-3 py-2 text-sm"></div>
-                    <div><label class="block text-sm font-medium mb-1">Amount</label><input name="amount" type="number" step="0.01" class="w-full border rounded-lg px-3 py-2 text-sm"></div>
-                </div>
-                <div><label class="block text-sm font-medium mb-1">Date</label><input name="date" type="date" class="w-full border rounded-lg px-3 py-2 text-sm"></div>
-                <div><label class="block text-sm font-medium mb-1">Notes</label><textarea name="notes" rows="2" class="w-full border rounded-lg px-3 py-2 text-sm"></textarea></div>
-                <button type="submit" class="w-full bg-brand-600 text-white py-2.5 rounded-lg hover:bg-brand-700 font-medium">Upload</button>
-            </form>`);
-        this.$('receiptForm').addEventListener('submit', async e => {
-            e.preventDefault();
-            const fd = new FormData(e.target);
-            try {
-                const headers = {};
-                await this.api('/receipts', { method: 'POST', body: fd, headers });
-                this.closeModal(); this.notify('Receipt uploaded', 'success'); this.loadReceipts();
-            } catch(err) { console.error(err); }
-        });
-    }
-
-    async deleteReceipt(id) {
-        if (!confirm('Delete this receipt?')) return;
-        try { await this.api('/receipts/' + id, { method: 'DELETE' }); this.notify('Deleted', 'success'); this.loadReceipts(); } catch(err) { console.error(err); }
     }
 
     // ── Family ──────────────────────────────────────────────

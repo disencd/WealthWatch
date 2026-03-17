@@ -4,7 +4,7 @@
   import {
     LayoutDashboard, Coins, Landmark, PieChart, Receipt, PiggyBank,
     RefreshCw, Wand2, BarChart3, Shuffle, Split, Users, Scale,
-    Camera, Heart, LogOut
+    Heart, LogOut
   } from 'lucide-svelte';
 
   const sections = [
@@ -49,7 +49,6 @@
     {
       label: 'More',
       items: [
-        { href: '/receipts', icon: Camera, label: 'Receipts' },
         { href: '/family', icon: Heart, label: 'Family / Partner' },
       ]
     }
