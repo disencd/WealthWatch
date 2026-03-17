@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Pre-commit hook: compile check + run tests before allowing commit
+# Install: cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+# Or run: bash scripts/setup-hooks.sh
+set -e
+
+echo "Pre-commit: compile check..."
+python -m py_compile app/main.py
+python -m py_compile app/config.py
+python -m py_compile app/database.py
+python -m py_compile app/auth.py
+for f in app/routers/*.py; do python -m py_compile "$f"; done
+
+echo "Pre-commit: running tests..."
+python -m pytest tests/ -x -q --tb=short
+
+echo "All checks passed."

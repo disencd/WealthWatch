@@ -1,0 +1,140 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write  # for Workload Identity Federation
+
+concurrency:
+  group: deploy-cloudrun-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GCP_PROJECT: ${{ vars.GCP_PROJECT }}
+  GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  SERVICE: wealthwatch-api
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements-dev.txt
+
+      - name: Compile check
+        run: |
+          python -m py_compile app/main.py
+          python -m py_compile app/config.py
+          python -m py_compile app/database.py
+          python -m py_compile app/auth.py
+          for f in app/routers/*.py; do python -m py_compile "$f"; done
+
+      - name: Test
+        run: python -m pytest tests/ -v --tb=short
+        env:
+          JWT_SECRET: ci-test-secret
+          DB_HOST: localhost
+          DB_PASSWORD: test
+
+  deploy-api:
+    name: Deploy API to Cloud Run
+    needs: test
+    runs-on: ubuntu-latest
+    environment: gcp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${{ env.GCP_REGION }}-docker.pkg.dev" --quiet
+
+      - name: Build & push image
+        env:
+          IMAGE: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT }}/wealthwatch/${{ env.SERVICE }}
+        run: |
+          TAG="${IMAGE}:sha-${GITHUB_SHA::7}"
+          docker build -f Dockerfile.cloudrun -t "$TAG" -t "${IMAGE}:latest" .
+          docker push "$TAG"
+          docker push "${IMAGE}:latest"
+          echo "IMAGE_TAG=$TAG" >> "$GITHUB_ENV"
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --image="$IMAGE_TAG" \
+            --region="$GCP_REGION" \
+            --project="$GCP_PROJECT" \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=8080 \
+            --cpu=1 \
+            --memory=512Mi \
+            --min-instances=0 \
+            --max-instances=3 \
+            --concurrency=80 \
+            --timeout=60 \
+            --cpu-boost \
+            --set-env-vars="ALLOWED_ORIGINS=${{ vars.ALLOWED_ORIGINS }}" \
+            --set-secrets="\
+          DATABASE_URL=wealthwatch-database-url:latest,\
+          JWT_SECRET=wealthwatch-jwt-secret:latest"
+
+      - name: Verify deployment
+        run: |
+          URL=$(gcloud run services describe "$SERVICE" \
+            --region="$GCP_REGION" --project="$GCP_PROJECT" \
+            --format='value(status.url)')
+          echo "API URL: $URL"
+          curl -sf "$URL/health" | jq .
+
+  deploy-frontend:
+    name: Deploy Frontend to Firebase
+    needs: test
+    runs-on: ubuntu-latest
+    environment: gcp
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Copy firebase config
+        run: cp deploy/cloudrun/firebase.json frontend/firebase.json
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          entryPoint: frontend

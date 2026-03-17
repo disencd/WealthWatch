@@ -7,22 +7,26 @@ on:
 
 jobs:
   test:
+    name: Lint & Test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
 
-      - name: Lint
-        run: python -m py_compile app/main.py
+      - name: Compile check
+        run: |
+          python -m py_compile app/main.py
+          python -m py_compile app/config.py
+          python -m py_compile app/database.py
+          python -m py_compile app/auth.py
+          for f in app/routers/*.py; do python -m py_compile "$f"; done
 
       - name: Test
         run: python -m pytest tests/ -v --tb=short
@@ -32,17 +36,16 @@ jobs:
           DB_PASSWORD: test
 
   docker:
+    name: Docker Build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image (no push)
-        uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v6
         with:
           context: .
+          file: Dockerfile.cloudrun
           push: false
-          tags: wealthwatch:ci
+          tags: wealthwatch-api:ci
