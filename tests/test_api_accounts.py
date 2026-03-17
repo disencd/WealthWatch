@@ -1,9 +1,6 @@
 """Tests for account CRUD and net-worth API endpoints."""
 
-import pytest
-
-from tests.conftest import register_user, auth_header
-
+from tests.conftest import auth_header, register_user
 
 # ── Account Creation ──────────────────────────────────────────────
 
@@ -13,12 +10,16 @@ async def test_create_checking_account_is_asset(client):
     data = await register_user(client)
     h = auth_header(data["token"])
 
-    resp = await client.post("/api/v1/accounts", json={
-        "institution_name": "Chase",
-        "account_name": "Primary Checking",
-        "account_type": "checking",
-        "balance": 5000,
-    }, headers=h)
+    resp = await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Chase",
+            "account_name": "Primary Checking",
+            "account_type": "checking",
+            "balance": 5000,
+        },
+        headers=h,
+    )
 
     assert resp.status_code == 201
     body = resp.json()
@@ -37,12 +38,16 @@ async def test_create_credit_card_forces_is_asset_false(client):
     data = await register_user(client)
     h = auth_header(data["token"])
 
-    resp = await client.post("/api/v1/accounts", json={
-        "institution_name": "Amex",
-        "account_name": "Platinum Card",
-        "account_type": "credit_card",
-        "balance": 3200,
-    }, headers=h)
+    resp = await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Amex",
+            "account_name": "Platinum Card",
+            "account_type": "credit_card",
+            "balance": 3200,
+        },
+        headers=h,
+    )
 
     assert resp.status_code == 201
     body = resp.json()
@@ -55,13 +60,17 @@ async def test_create_loan_forces_is_asset_false(client):
     data = await register_user(client)
     h = auth_header(data["token"])
 
-    resp = await client.post("/api/v1/accounts", json={
-        "institution_name": "SoFi",
-        "account_name": "Personal Loan",
-        "account_type": "loan",
-        "balance": 15000,
-        "is_asset": True,
-    }, headers=h)
+    resp = await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "SoFi",
+            "account_name": "Personal Loan",
+            "account_type": "loan",
+            "balance": 15000,
+            "is_asset": True,
+        },
+        headers=h,
+    )
 
     assert resp.status_code == 201
     assert resp.json()["is_asset"] is False
@@ -72,13 +81,17 @@ async def test_create_account_with_ownership(client):
     data = await register_user(client)
     h = auth_header(data["token"])
 
-    resp = await client.post("/api/v1/accounts", json={
-        "institution_name": "Vanguard",
-        "account_name": "Roth IRA",
-        "account_type": "investment",
-        "balance": 42000,
-        "ownership": "mine",
-    }, headers=h)
+    resp = await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Vanguard",
+            "account_name": "Roth IRA",
+            "account_type": "investment",
+            "balance": 42000,
+            "ownership": "mine",
+        },
+        headers=h,
+    )
 
     assert resp.status_code == 201
     assert resp.json()["ownership"] == "mine"
@@ -93,14 +106,26 @@ async def test_list_accounts(client):
     h = auth_header(data["token"])
 
     # create two accounts
-    await client.post("/api/v1/accounts", json={
-        "institution_name": "Chase", "account_name": "Checking",
-        "account_type": "checking", "balance": 1000,
-    }, headers=h)
-    await client.post("/api/v1/accounts", json={
-        "institution_name": "Ally", "account_name": "Savings",
-        "account_type": "savings", "balance": 2000,
-    }, headers=h)
+    await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Chase",
+            "account_name": "Checking",
+            "account_type": "checking",
+            "balance": 1000,
+        },
+        headers=h,
+    )
+    await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Ally",
+            "account_name": "Savings",
+            "account_type": "savings",
+            "balance": 2000,
+        },
+        headers=h,
+    )
 
     resp = await client.get("/api/v1/accounts", headers=h)
     assert resp.status_code == 200
@@ -115,14 +140,26 @@ async def test_list_accounts_filter_by_type(client):
     data = await register_user(client)
     h = auth_header(data["token"])
 
-    await client.post("/api/v1/accounts", json={
-        "institution_name": "Chase", "account_name": "Checking",
-        "account_type": "checking", "balance": 1000,
-    }, headers=h)
-    await client.post("/api/v1/accounts", json={
-        "institution_name": "Amex", "account_name": "Gold Card",
-        "account_type": "credit_card", "balance": 500,
-    }, headers=h)
+    await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Chase",
+            "account_name": "Checking",
+            "account_type": "checking",
+            "balance": 1000,
+        },
+        headers=h,
+    )
+    await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Amex",
+            "account_name": "Gold Card",
+            "account_type": "credit_card",
+            "balance": 500,
+        },
+        headers=h,
+    )
 
     resp = await client.get("/api/v1/accounts", params={"type": "credit_card"}, headers=h)
     assert resp.status_code == 200
@@ -136,14 +173,28 @@ async def test_list_accounts_filter_by_ownership(client):
     data = await register_user(client)
     h = auth_header(data["token"])
 
-    await client.post("/api/v1/accounts", json={
-        "institution_name": "Chase", "account_name": "Joint Checking",
-        "account_type": "checking", "balance": 3000, "ownership": "ours",
-    }, headers=h)
-    await client.post("/api/v1/accounts", json={
-        "institution_name": "Fidelity", "account_name": "My 401k",
-        "account_type": "investment", "balance": 80000, "ownership": "mine",
-    }, headers=h)
+    await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Chase",
+            "account_name": "Joint Checking",
+            "account_type": "checking",
+            "balance": 3000,
+            "ownership": "ours",
+        },
+        headers=h,
+    )
+    await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Fidelity",
+            "account_name": "My 401k",
+            "account_type": "investment",
+            "balance": 80000,
+            "ownership": "mine",
+        },
+        headers=h,
+    )
 
     resp = await client.get("/api/v1/accounts", params={"ownership": "mine"}, headers=h)
     assert resp.status_code == 200
@@ -160,10 +211,16 @@ async def test_get_account_by_id(client):
     data = await register_user(client)
     h = auth_header(data["token"])
 
-    create_resp = await client.post("/api/v1/accounts", json={
-        "institution_name": "Chase", "account_name": "Checking",
-        "account_type": "checking", "balance": 5000,
-    }, headers=h)
+    create_resp = await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Chase",
+            "account_name": "Checking",
+            "account_type": "checking",
+            "balance": 5000,
+        },
+        headers=h,
+    )
     account_id = create_resp.json()["id"]
 
     resp = await client.get(f"/api/v1/accounts/{account_id}", headers=h)
@@ -186,16 +243,26 @@ async def test_update_account_balance(client):
     data = await register_user(client)
     h = auth_header(data["token"])
 
-    create_resp = await client.post("/api/v1/accounts", json={
-        "institution_name": "Chase", "account_name": "Checking",
-        "account_type": "checking", "balance": 5000,
-    }, headers=h)
+    create_resp = await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Chase",
+            "account_name": "Checking",
+            "account_type": "checking",
+            "balance": 5000,
+        },
+        headers=h,
+    )
     account_id = create_resp.json()["id"]
 
-    resp = await client.put(f"/api/v1/accounts/{account_id}", json={
-        "balance": 7500,
-        "account_name": "Main Checking",
-    }, headers=h)
+    resp = await client.put(
+        f"/api/v1/accounts/{account_id}",
+        json={
+            "balance": 7500,
+            "account_name": "Main Checking",
+        },
+        headers=h,
+    )
 
     assert resp.status_code == 200
     body = resp.json()
@@ -208,15 +275,25 @@ async def test_update_account_deactivate(client):
     data = await register_user(client)
     h = auth_header(data["token"])
 
-    create_resp = await client.post("/api/v1/accounts", json={
-        "institution_name": "Old Bank", "account_name": "Closed Savings",
-        "account_type": "savings", "balance": 0,
-    }, headers=h)
+    create_resp = await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Old Bank",
+            "account_name": "Closed Savings",
+            "account_type": "savings",
+            "balance": 0,
+        },
+        headers=h,
+    )
     account_id = create_resp.json()["id"]
 
-    await client.put(f"/api/v1/accounts/{account_id}", json={
-        "is_active": False,
-    }, headers=h)
+    await client.put(
+        f"/api/v1/accounts/{account_id}",
+        json={
+            "is_active": False,
+        },
+        headers=h,
+    )
 
     resp = await client.get("/api/v1/accounts", headers=h)
     assert resp.status_code == 200
@@ -228,10 +305,16 @@ async def test_delete_account(client):
     data = await register_user(client)
     h = auth_header(data["token"])
 
-    create_resp = await client.post("/api/v1/accounts", json={
-        "institution_name": "Chase", "account_name": "Old Account",
-        "account_type": "checking", "balance": 100,
-    }, headers=h)
+    create_resp = await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Chase",
+            "account_name": "Old Account",
+            "account_type": "checking",
+            "balance": 100,
+        },
+        headers=h,
+    )
     account_id = create_resp.json()["id"]
 
     del_resp = await client.delete(f"/api/v1/accounts/{account_id}", headers=h)
@@ -251,24 +334,48 @@ async def test_networth_summary_mixed_accounts(client):
     h = auth_header(data["token"])
 
     # assets
-    await client.post("/api/v1/accounts", json={
-        "institution_name": "Chase", "account_name": "Checking",
-        "account_type": "checking", "balance": 10000,
-    }, headers=h)
-    await client.post("/api/v1/accounts", json={
-        "institution_name": "Vanguard", "account_name": "Brokerage",
-        "account_type": "investment", "balance": 50000,
-    }, headers=h)
+    await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Chase",
+            "account_name": "Checking",
+            "account_type": "checking",
+            "balance": 10000,
+        },
+        headers=h,
+    )
+    await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Vanguard",
+            "account_name": "Brokerage",
+            "account_type": "investment",
+            "balance": 50000,
+        },
+        headers=h,
+    )
 
     # liabilities
-    await client.post("/api/v1/accounts", json={
-        "institution_name": "Amex", "account_name": "Platinum",
-        "account_type": "credit_card", "balance": 2000,
-    }, headers=h)
-    await client.post("/api/v1/accounts", json={
-        "institution_name": "Wells Fargo", "account_name": "Mortgage",
-        "account_type": "mortgage", "balance": 300000,
-    }, headers=h)
+    await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Amex",
+            "account_name": "Platinum",
+            "account_type": "credit_card",
+            "balance": 2000,
+        },
+        headers=h,
+    )
+    await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Wells Fargo",
+            "account_name": "Mortgage",
+            "account_type": "mortgage",
+            "balance": 300000,
+        },
+        headers=h,
+    )
 
     resp = await client.get("/api/v1/networth/summary", headers=h)
     assert resp.status_code == 200
@@ -289,14 +396,26 @@ async def test_networth_snapshot_creation(client):
     data = await register_user(client)
     h = auth_header(data["token"])
 
-    await client.post("/api/v1/accounts", json={
-        "institution_name": "Chase", "account_name": "Checking",
-        "account_type": "checking", "balance": 8000,
-    }, headers=h)
-    await client.post("/api/v1/accounts", json={
-        "institution_name": "Amex", "account_name": "Card",
-        "account_type": "credit_card", "balance": 1500,
-    }, headers=h)
+    await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Chase",
+            "account_name": "Checking",
+            "account_type": "checking",
+            "balance": 8000,
+        },
+        headers=h,
+    )
+    await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Amex",
+            "account_name": "Card",
+            "account_type": "credit_card",
+            "balance": 1500,
+        },
+        headers=h,
+    )
 
     resp = await client.post("/api/v1/networth/snapshot", headers=h)
     assert resp.status_code == 201
@@ -313,10 +432,16 @@ async def test_networth_history(client):
     data = await register_user(client)
     h = auth_header(data["token"])
 
-    await client.post("/api/v1/accounts", json={
-        "institution_name": "Chase", "account_name": "Checking",
-        "account_type": "checking", "balance": 5000,
-    }, headers=h)
+    await client.post(
+        "/api/v1/accounts",
+        json={
+            "institution_name": "Chase",
+            "account_name": "Checking",
+            "account_type": "checking",
+            "balance": 5000,
+        },
+        headers=h,
+    )
 
     # take two snapshots (balance changes in between)
     await client.post("/api/v1/networth/snapshot", headers=h)

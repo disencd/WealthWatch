@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -9,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.auth import TokenData, get_current_user
 from app.database import get_db
-from app.models import Expense, Split, User
+from app.models import Expense, Split
 
 router = APIRouter(prefix="/api/v1/expenses", tags=["expenses"])
 
@@ -26,9 +25,9 @@ class CreateExpenseRequest(BaseModel):
     amount: float
     currency: str = "USD"
     date: str
-    group_id: Optional[int] = None
+    group_id: int | None = None
     category: str = ""
-    splits: List[SplitItem] = []
+    splits: list[SplitItem] = []
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -38,9 +37,14 @@ async def create_expense(
     db: AsyncSession = Depends(get_db),
 ):
     expense = Expense(
-        title=req.title, description=req.description, amount=req.amount,
-        currency=req.currency, date=datetime.fromisoformat(req.date),
-        payer_id=current_user.user_id, group_id=req.group_id, category=req.category,
+        title=req.title,
+        description=req.description,
+        amount=req.amount,
+        currency=req.currency,
+        date=datetime.fromisoformat(req.date),
+        payer_id=current_user.user_id,
+        group_id=req.group_id,
+        category=req.category,
     )
     db.add(expense)
     await db.flush()
@@ -58,17 +62,30 @@ async def get_expenses(
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    rows = (await db.execute(
-        select(Expense).options(selectinload(Expense.splits))
-        .where(Expense.payer_id == current_user.user_id)
-        .order_by(Expense.date.desc())
-    )).scalars().all()
+    rows = (
+        (
+            await db.execute(
+                select(Expense)
+                .options(selectinload(Expense.splits))
+                .where(Expense.payer_id == current_user.user_id)
+                .order_by(Expense.date.desc())
+            )
+        )
+        .scalars()
+        .all()
+    )
     return [
-        {"id": e.id, "title": e.title, "amount": e.amount, "currency": e.currency,
-         "date": str(e.date), "payer_id": e.payer_id, "group_id": e.group_id,
-         "category": e.category, "splits": [
-             {"id": s.id, "user_id": s.user_id, "amount": s.amount} for s in e.splits
-         ]}
+        {
+            "id": e.id,
+            "title": e.title,
+            "amount": e.amount,
+            "currency": e.currency,
+            "date": str(e.date),
+            "payer_id": e.payer_id,
+            "group_id": e.group_id,
+            "category": e.category,
+            "splits": [{"id": s.id, "user_id": s.user_id, "amount": s.amount} for s in e.splits],
+        }
         for e in rows
     ]
 
@@ -79,13 +96,19 @@ async def get_expense(
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    e = (await db.execute(
-        select(Expense).options(selectinload(Expense.splits)).where(Expense.id == id)
-    )).scalar_one_or_none()
+    e = (
+        await db.execute(select(Expense).options(selectinload(Expense.splits)).where(Expense.id == id))
+    ).scalar_one_or_none()
     if not e:
         raise HTTPException(404, "Expense not found")
-    return {"id": e.id, "title": e.title, "amount": e.amount, "currency": e.currency,
-            "date": str(e.date), "payer_id": e.payer_id, "group_id": e.group_id,
-            "category": e.category, "splits": [
-                {"id": s.id, "user_id": s.user_id, "amount": s.amount} for s in e.splits
-            ]}
+    return {
+        "id": e.id,
+        "title": e.title,
+        "amount": e.amount,
+        "currency": e.currency,
+        "date": str(e.date),
+        "payer_id": e.payer_id,
+        "group_id": e.group_id,
+        "category": e.category,
+        "splits": [{"id": s.id, "user_id": s.user_id, "amount": s.amount} for s in e.splits],
+    }

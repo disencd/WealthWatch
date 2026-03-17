@@ -1,11 +1,9 @@
 """API tests for the balances router (/api/v1/balances)."""
 
-import pytest
-
-from tests.conftest import register_user, auth_header
-
+from tests.conftest import auth_header, register_user
 
 # ── Helpers ───────────────────────────────────────────────────────
+
 
 async def _create_expense_with_splits(client, token, payer_id, split_user_id, amount, split_amount):
     """Create an expense where *payer_id* pays and *split_user_id* owes *split_amount*."""
@@ -24,6 +22,7 @@ async def _create_expense_with_splits(client, token, payer_id, split_user_id, am
 
 
 # ── Tests ─────────────────────────────────────────────────────────
+
 
 async def test_empty_balances(client):
     """GET /balances returns an empty list when no expenses exist."""
@@ -85,14 +84,15 @@ async def test_balance_with_specific_user(client):
 
     # Alice checks balance with Bob
     resp = await client.get(
-        f"/api/v1/balances/users/{id_b}", headers=auth_header(token_a),
+        f"/api/v1/balances/users/{id_b}",
+        headers=auth_header(token_a),
     )
     assert resp.status_code == 200
     body = resp.json()
     assert body["user_id"] == id_b
-    assert body["they_owe_you"] == 40.0   # Bob's split on Alice's expense
-    assert body["you_owe_them"] == 30.0   # Alice's split on Bob's expense
-    assert body["net_balance"] == 10.0    # 40 - 30
+    assert body["they_owe_you"] == 40.0  # Bob's split on Alice's expense
+    assert body["you_owe_them"] == 30.0  # Alice's split on Bob's expense
+    assert body["net_balance"] == 10.0  # 40 - 30
 
 
 async def test_balance_with_nonexistent_user(client):
@@ -101,6 +101,7 @@ async def test_balance_with_nonexistent_user(client):
     token = data["token"]
 
     resp = await client.get(
-        "/api/v1/balances/users/99999", headers=auth_header(token),
+        "/api/v1/balances/users/99999",
+        headers=auth_header(token),
     )
     assert resp.status_code == 404

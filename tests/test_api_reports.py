@@ -8,10 +8,10 @@ extract() which SQLAlchemy translates for SQLite in recent versions.
 
 import pytest
 
-from tests.conftest import register_user, auth_header
-
+from tests.conftest import auth_header, register_user
 
 # ── Tests ─────────────────────────────────────────────────────────
+
 
 async def test_spending_by_merchant_empty(client):
     """GET /reports/spending-by-merchant returns empty list when no data."""

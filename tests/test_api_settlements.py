@@ -1,11 +1,9 @@
 """API tests for the settlements router (/api/v1/settlements)."""
 
-import pytest
-
-from tests.conftest import register_user, auth_header
-
+from tests.conftest import auth_header, register_user
 
 # ── Helpers ───────────────────────────────────────────────────────
+
 
 async def _register_two_users(client):
     """Register two users and return (data_a, data_b) dicts with tokens."""
@@ -19,11 +17,14 @@ async def _create_settlement(client, token, to_user_id, amount=50.0, **kwargs):
     payload = {"to_user_id": to_user_id, "amount": amount}
     payload.update(kwargs)
     return await client.post(
-        "/api/v1/settlements", json=payload, headers=auth_header(token),
+        "/api/v1/settlements",
+        json=payload,
+        headers=auth_header(token),
     )
 
 
 # ── Tests ─────────────────────────────────────────────────────────
+
 
 async def test_create_settlement(client):
     """POST /settlements creates a pending settlement and returns it."""
@@ -78,12 +79,16 @@ async def test_get_settlement_by_id(client):
     token_a = data_a["token"]
 
     create_resp = await _create_settlement(
-        client, token_a, data_b["user"]["id"], amount=42.0,
+        client,
+        token_a,
+        data_b["user"]["id"],
+        amount=42.0,
     )
     settlement_id = create_resp.json()["id"]
 
     resp = await client.get(
-        f"/api/v1/settlements/{settlement_id}", headers=auth_header(token_a),
+        f"/api/v1/settlements/{settlement_id}",
+        headers=auth_header(token_a),
     )
 
     assert resp.status_code == 200
@@ -97,7 +102,8 @@ async def test_get_settlement_not_found(client):
     """GET /settlements/{id} returns 404 for non-existent settlement."""
     data = await register_user(client)
     resp = await client.get(
-        "/api/v1/settlements/99999", headers=auth_header(data["token"]),
+        "/api/v1/settlements/99999",
+        headers=auth_header(data["token"]),
     )
     assert resp.status_code == 404
 
@@ -108,7 +114,10 @@ async def test_update_status_to_completed(client):
     token_a = data_a["token"]
 
     create_resp = await _create_settlement(
-        client, token_a, data_b["user"]["id"], amount=100.0,
+        client,
+        token_a,
+        data_b["user"]["id"],
+        amount=100.0,
     )
     settlement_id = create_resp.json()["id"]
 
@@ -123,7 +132,8 @@ async def test_update_status_to_completed(client):
 
     # Confirm persistence
     detail = await client.get(
-        f"/api/v1/settlements/{settlement_id}", headers=auth_header(token_a),
+        f"/api/v1/settlements/{settlement_id}",
+        headers=auth_header(token_a),
     )
     assert detail.json()["status"] == "completed"
 
@@ -134,7 +144,10 @@ async def test_update_status_to_cancelled(client):
     token_a = data_a["token"]
 
     create_resp = await _create_settlement(
-        client, token_a, data_b["user"]["id"], amount=25.0,
+        client,
+        token_a,
+        data_b["user"]["id"],
+        amount=25.0,
     )
     settlement_id = create_resp.json()["id"]
 
@@ -154,7 +167,10 @@ async def test_update_status_invalid(client):
     token_a = data_a["token"]
 
     create_resp = await _create_settlement(
-        client, token_a, data_b["user"]["id"], amount=10.0,
+        client,
+        token_a,
+        data_b["user"]["id"],
+        amount=10.0,
     )
     settlement_id = create_resp.json()["id"]
 

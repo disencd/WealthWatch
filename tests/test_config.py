@@ -1,4 +1,4 @@
-"""Pure unit tests for app.config.Settings – no database required."""
+"""Pure unit tests for app.config.Settings - no database required."""
 
 import os
 
@@ -7,12 +7,12 @@ os.environ.setdefault("JWT_SECRET", "test-secret")
 os.environ.setdefault("DB_HOST", "localhost")
 os.environ.setdefault("DB_PASSWORD", "test")
 
-from app.config import Settings, get_settings  # noqa: E402
-
+from app.config import Settings, get_settings
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _clear_settings_cache():
     """Clear the lru_cache on get_settings so each test gets a fresh object."""
@@ -42,6 +42,7 @@ def _make(**overrides) -> Settings:
 # database_url_async — TCP fallback (branch 3)
 # ---------------------------------------------------------------------------
 
+
 def test_database_url_tcp_default():
     _clear_settings_cache()
     s = _make(DB_HOST="myhost", DB_PORT=5432, DB_USER="u", DB_PASSWORD="p", DB_NAME="d")
@@ -57,6 +58,7 @@ def test_database_url_tcp_custom_port():
 # ---------------------------------------------------------------------------
 # database_url_async — DATABASE_URL present (branch 1)
 # ---------------------------------------------------------------------------
+
 
 def test_database_url_neon_swaps_driver_and_strips_sslmode():
     _clear_settings_cache()
@@ -88,6 +90,7 @@ def test_database_url_preserves_other_query_params():
 # database_url_async — Cloud SQL Unix socket (branch 2)
 # ---------------------------------------------------------------------------
 
+
 def test_database_url_cloud_sql_unix_socket():
     _clear_settings_cache()
     s = _make(
@@ -104,6 +107,7 @@ def test_database_url_cloud_sql_unix_socket():
 # database_url_async — priority: DATABASE_URL > CLOUD_SQL > TCP
 # ---------------------------------------------------------------------------
 
+
 def test_database_url_priority_database_url_wins():
     """DATABASE_URL takes precedence over CLOUD_SQL_CONNECTION_NAME."""
     _clear_settings_cache()
@@ -119,6 +123,7 @@ def test_database_url_priority_database_url_wins():
 # database_url (backward-compat alias)
 # ---------------------------------------------------------------------------
 
+
 def test_database_url_alias():
     _clear_settings_cache()
     s = _make()
@@ -128,6 +133,7 @@ def test_database_url_alias():
 # ---------------------------------------------------------------------------
 # requires_ssl
 # ---------------------------------------------------------------------------
+
 
 def test_requires_ssl_true_for_require():
     _clear_settings_cache()
@@ -169,6 +175,7 @@ def test_requires_ssl_false_when_no_sslmode_param():
 # cors_origins
 # ---------------------------------------------------------------------------
 
+
 def test_cors_origins_default_dev():
     """Empty ALLOWED_ORIGINS + not Cloud Run → ["*"]."""
     _clear_settings_cache()
@@ -205,6 +212,7 @@ def test_cors_origins_ignores_blank_entries():
 # jwt_expiry_seconds
 # ---------------------------------------------------------------------------
 
+
 def test_jwt_expiry_hours():
     _clear_settings_cache()
     s = _make(JWT_EXPIRES_IN="168h")
@@ -233,6 +241,7 @@ def test_jwt_expiry_one_hour():
 # is_cloud_run
 # ---------------------------------------------------------------------------
 
+
 def test_is_cloud_run_true():
     _clear_settings_cache()
     s = _make(K_SERVICE="my-svc")
@@ -248,6 +257,7 @@ def test_is_cloud_run_false():
 # ---------------------------------------------------------------------------
 # get_settings caching
 # ---------------------------------------------------------------------------
+
 
 def test_get_settings_returns_same_object():
     _clear_settings_cache()

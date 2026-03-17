@@ -5,3 +5,39 @@ filterwarnings = [
     "ignore::DeprecationWarning:passlib",
     "ignore::DeprecationWarning:jose",
 ]
+
+# ── Ruff ──────────────────────────────────────────────────────────
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+    "RUF", # ruff-specific rules
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "E712",   # == True comparisons (required by SQLAlchemy .where() clauses)
+    "B008",   # do not perform function calls in argument defaults (FastAPI Depends)
+    "RUF012", # mutable class attributes (SQLAlchemy models)
+    "TC003",  # move stdlib import to TYPE_CHECKING (SQLAlchemy needs runtime datetime)
+    "UP042",  # str+Enum -> StrEnum (keep explicit for SQLAlchemy Enum column compat)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/conftest.py" = ["E402"]  # env vars must be set before app imports
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

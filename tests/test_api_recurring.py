@@ -11,6 +11,7 @@ BASE = "/api/v1/recurring"
 
 # ── helpers ───────────────────────────────────────────────────────
 
+
 def _future(days: int) -> str:
     """Return an ISO-8601 date string *days* from now."""
     return (datetime.utcnow() + timedelta(days=days)).date().isoformat()
@@ -33,6 +34,7 @@ async def _create_recurring(client, headers, **overrides) -> dict:
 
 
 # ── tests ─────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_create_recurring(client):

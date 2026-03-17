@@ -1,14 +1,13 @@
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import TokenData, get_current_user
 from app.database import get_db
-from app.models import Account, AccountType, AccountOwnership, NetWorthSnapshot
+from app.models import Account, AccountOwnership, AccountType, NetWorthSnapshot
 
 router = APIRouter(prefix="/api/v1", tags=["accounts"])
 
@@ -20,37 +19,50 @@ class CreateAccountRequest(BaseModel):
     ownership: str = "ours"
     balance: float = 0
     currency: str = "USD"
-    is_asset: Optional[bool] = None
+    is_asset: bool | None = None
 
 
 class UpdateAccountRequest(BaseModel):
-    account_name: Optional[str] = None
-    balance: Optional[float] = None
-    ownership: Optional[str] = None
-    is_active: Optional[bool] = None
+    account_name: str | None = None
+    balance: float | None = None
+    ownership: str | None = None
+    is_active: bool | None = None
 
 
 def _acc_dict(a: Account) -> dict:
     return {
-        "id": a.id, "family_id": a.family_id, "created_by_user_id": a.created_by_user_id,
-        "institution_name": a.institution_name, "account_name": a.account_name,
-        "account_type": a.account_type.value, "ownership": a.ownership.value,
-        "balance": a.balance, "currency": a.currency,
-        "is_asset": a.is_asset, "is_active": a.is_active,
+        "id": a.id,
+        "family_id": a.family_id,
+        "created_by_user_id": a.created_by_user_id,
+        "institution_name": a.institution_name,
+        "account_name": a.account_name,
+        "account_type": a.account_type.value,
+        "ownership": a.ownership.value,
+        "balance": a.balance,
+        "currency": a.currency,
+        "is_asset": a.is_asset,
+        "is_active": a.is_active,
         "last_synced_at": str(a.last_synced_at) if a.last_synced_at else None,
-        "created_at": str(a.created_at), "updated_at": str(a.updated_at),
+        "created_at": str(a.created_at),
+        "updated_at": str(a.updated_at),
     }
 
 
 # ── Accounts ───────────────────────────────────────────────────────
 
+
 @router.get("/accounts")
 async def list_accounts(
-    type: Optional[str] = None, ownership: Optional[str] = None,
+    type: str | None = None,
+    ownership: str | None = None,
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    q = select(Account).where(Account.family_id == current_user.family_id, Account.is_active == True).order_by(Account.account_type, Account.account_name)
+    q = (
+        select(Account)
+        .where(Account.family_id == current_user.family_id, Account.is_active == True)
+        .order_by(Account.account_type, Account.account_name)
+    )
     if type:
         q = q.where(Account.account_type == type)
     if ownership:
@@ -69,12 +81,16 @@ async def create_account(
     if req.account_type in ("credit_card", "loan", "mortgage"):
         is_asset = False
     account = Account(
-        family_id=current_user.family_id, created_by_user_id=current_user.user_id,
-        institution_name=req.institution_name, account_name=req.account_name,
+        family_id=current_user.family_id,
+        created_by_user_id=current_user.user_id,
+        institution_name=req.institution_name,
+        account_name=req.account_name,
         account_type=AccountType(req.account_type),
         ownership=AccountOwnership(req.ownership),
-        balance=req.balance, currency=req.currency,
-        is_asset=is_asset, is_active=True,
+        balance=req.balance,
+        currency=req.currency,
+        is_asset=is_asset,
+        is_active=True,
     )
     db.add(account)
     await db.commit()
@@ -88,9 +104,9 @@ async def get_account(
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    acc = (await db.execute(
-        select(Account).where(Account.id == id, Account.family_id == current_user.family_id)
-    )).scalar_one_or_none()
+    acc = (
+        await db.execute(select(Account).where(Account.id == id, Account.family_id == current_user.family_id))
+    ).scalar_one_or_none()
     if not acc:
         raise HTTPException(404, "Account not found")
     return _acc_dict(acc)
@@ -98,13 +114,14 @@ async def get_account(
 
 @router.put("/accounts/{id}")
 async def update_account(
-    id: int, req: UpdateAccountRequest,
+    id: int,
+    req: UpdateAccountRequest,
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    acc = (await db.execute(
-        select(Account).where(Account.id == id, Account.family_id == current_user.family_id)
-    )).scalar_one_or_none()
+    acc = (
+        await db.execute(select(Account).where(Account.id == id, Account.family_id == current_user.family_id))
+    ).scalar_one_or_none()
     if not acc:
         raise HTTPException(404, "Account not found")
     if req.account_name is not None:
@@ -126,9 +143,9 @@ async def delete_account(
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    acc = (await db.execute(
-        select(Account).where(Account.id == id, Account.family_id == current_user.family_id)
-    )).scalar_one_or_none()
+    acc = (
+        await db.execute(select(Account).where(Account.id == id, Account.family_id == current_user.family_id))
+    ).scalar_one_or_none()
     if not acc:
         raise HTTPException(404, "Account not found")
     await db.delete(acc)
@@ -137,14 +154,21 @@ async def delete_account(
 
 # ── Net Worth ──────────────────────────────────────────────────────
 
+
 @router.get("/networth/summary")
 async def get_networth_summary(
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    accounts = (await db.execute(
-        select(Account).where(Account.family_id == current_user.family_id, Account.is_active == True)
-    )).scalars().all()
+    accounts = (
+        (
+            await db.execute(
+                select(Account).where(Account.family_id == current_user.family_id, Account.is_active == True)
+            )
+        )
+        .scalars()
+        .all()
+    )
 
     total_assets = total_liabilities = 0.0
     assets_by_type: dict[str, float] = {}
@@ -158,27 +182,39 @@ async def get_networth_summary(
             liabilities_by_type[a.account_type.value] = liabilities_by_type.get(a.account_type.value, 0) + a.balance
 
     return {
-        "total_assets": total_assets, "total_liabilities": total_liabilities,
+        "total_assets": total_assets,
+        "total_liabilities": total_liabilities,
         "net_worth": total_assets - total_liabilities,
-        "assets_by_type": assets_by_type, "liabilities_by_type": liabilities_by_type,
+        "assets_by_type": assets_by_type,
+        "liabilities_by_type": liabilities_by_type,
         "account_count": len(accounts),
     }
 
 
 @router.get("/networth/history")
 async def get_networth_history(
-    limit: Optional[int] = None,
+    limit: int | None = None,
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    q = select(NetWorthSnapshot).where(
-        NetWorthSnapshot.family_id == current_user.family_id
-    ).order_by(NetWorthSnapshot.date)
+    q = (
+        select(NetWorthSnapshot)
+        .where(NetWorthSnapshot.family_id == current_user.family_id)
+        .order_by(NetWorthSnapshot.date)
+    )
     if limit:
         q = q.limit(limit)
     rows = (await db.execute(q)).scalars().all()
-    return [{"id": s.id, "date": str(s.date), "total_assets": s.total_assets,
-             "total_liabilities": s.total_liabilities, "net_worth": s.net_worth} for s in rows]
+    return [
+        {
+            "id": s.id,
+            "date": str(s.date),
+            "total_assets": s.total_assets,
+            "total_liabilities": s.total_liabilities,
+            "net_worth": s.net_worth,
+        }
+        for s in rows
+    ]
 
 
 @router.post("/networth/snapshot", status_code=status.HTTP_201_CREATED)
@@ -186,18 +222,31 @@ async def snapshot_networth(
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    accounts = (await db.execute(
-        select(Account).where(Account.family_id == current_user.family_id, Account.is_active == True)
-    )).scalars().all()
+    accounts = (
+        (
+            await db.execute(
+                select(Account).where(Account.family_id == current_user.family_id, Account.is_active == True)
+            )
+        )
+        .scalars()
+        .all()
+    )
     total_assets = sum(a.balance for a in accounts if a.is_asset)
     total_liabilities = sum(a.balance for a in accounts if not a.is_asset)
     snapshot = NetWorthSnapshot(
-        family_id=current_user.family_id, date=datetime.now(timezone.utc),
-        total_assets=total_assets, total_liabilities=total_liabilities,
+        family_id=current_user.family_id,
+        date=datetime.now(UTC),
+        total_assets=total_assets,
+        total_liabilities=total_liabilities,
         net_worth=total_assets - total_liabilities,
     )
     db.add(snapshot)
     await db.commit()
     await db.refresh(snapshot)
-    return {"id": snapshot.id, "date": str(snapshot.date), "total_assets": snapshot.total_assets,
-            "total_liabilities": snapshot.total_liabilities, "net_worth": snapshot.net_worth}
+    return {
+        "id": snapshot.id,
+        "date": str(snapshot.date),
+        "total_assets": snapshot.total_assets,
+        "total_liabilities": snapshot.total_liabilities,
+        "net_worth": snapshot.net_worth,
+    }

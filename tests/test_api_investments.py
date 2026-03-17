@@ -1,7 +1,8 @@
 """Tests for the investment holdings API (/api/v1/investments)."""
 
 import pytest
-from tests.conftest import register_user, auth_header
+
+from tests.conftest import auth_header, register_user
 
 # ── Helpers ───────────────────────────────────────────────────────
 
@@ -20,9 +21,7 @@ async def _create_account(client, headers: dict, **overrides) -> dict:
     return resp.json()
 
 
-async def _create_holding(
-    client, headers: dict, account_id: int, **overrides
-) -> dict:
+async def _create_holding(client, headers: dict, account_id: int, **overrides) -> dict:
     """Create an investment holding and return the response JSON."""
     payload = {
         "account_id": account_id,
@@ -129,23 +128,35 @@ async def test_portfolio_summary_with_holdings(client):
 
     # Stock: 10 shares @ cost 150, price 175 -> value 1750, cost 1500
     await _create_holding(
-        client, h, acc_id,
-        symbol="AAPL", name="Apple Inc", investment_type="stock",
-        quantity=10, cost_basis=150.0, current_price=175.0,
+        client,
+        h,
+        acc_id,
+        symbol="AAPL",
+        name="Apple Inc",
+        investment_type="stock",
+        quantity=10,
+        cost_basis=150.0,
+        current_price=175.0,
     )
     # ETF: 5 shares @ cost 300, price 320 -> value 1600, cost 1500
     await _create_holding(
-        client, h, acc_id,
-        symbol="VOO", name="Vanguard S&P 500", investment_type="etf",
-        quantity=5, cost_basis=300.0, current_price=320.0,
+        client,
+        h,
+        acc_id,
+        symbol="VOO",
+        name="Vanguard S&P 500",
+        investment_type="etf",
+        quantity=5,
+        cost_basis=300.0,
+        current_price=320.0,
     )
 
     resp = await client.get("/api/v1/investments/portfolio", headers=h)
     assert resp.status_code == 200
     body = resp.json()
 
-    assert body["total_value"] == pytest.approx(3350.0)   # 1750 + 1600
-    assert body["total_cost"] == pytest.approx(3000.0)    # 1500 + 1500
+    assert body["total_value"] == pytest.approx(3350.0)  # 1750 + 1600
+    assert body["total_cost"] == pytest.approx(3000.0)  # 1500 + 1500
     assert body["total_gain_loss"] == pytest.approx(350.0)
     assert body["total_gain_loss_percent"] == pytest.approx(350.0 / 3000.0 * 100)
     assert body["holding_count"] == 2
@@ -160,8 +171,12 @@ async def test_update_holding_recalculates(client):
     h = auth_header(data["token"])
     acc = await _create_account(client, h)
     holding = await _create_holding(
-        client, h, acc["id"],
-        quantity=10, cost_basis=150.0, current_price=175.0,
+        client,
+        h,
+        acc["id"],
+        quantity=10,
+        cost_basis=150.0,
+        current_price=175.0,
     )
     holding_id = holding["id"]
 
@@ -191,8 +206,12 @@ async def test_update_holding_cost_basis(client):
     h = auth_header(data["token"])
     acc = await _create_account(client, h)
     holding = await _create_holding(
-        client, h, acc["id"],
-        quantity=10, cost_basis=100.0, current_price=100.0,
+        client,
+        h,
+        acc["id"],
+        quantity=10,
+        cost_basis=100.0,
+        current_price=100.0,
     )
 
     resp = await client.put(
@@ -217,9 +236,7 @@ async def test_delete_holding(client):
     acc = await _create_account(client, h)
     holding = await _create_holding(client, h, acc["id"])
 
-    resp = await client.delete(
-        f"/api/v1/investments/{holding['id']}", headers=h
-    )
+    resp = await client.delete(f"/api/v1/investments/{holding['id']}", headers=h)
     assert resp.status_code == 204
 
     # Verify it's gone
@@ -264,9 +281,7 @@ async def test_unauthenticated_access(client):
     ]
     for method, url in endpoints:
         resp = await client.request(method, url)
-        assert resp.status_code in (401, 403), (
-            f"{method} {url} should be 401/403 without auth, got {resp.status_code}"
-        )
+        assert resp.status_code in (401, 403), f"{method} {url} should be 401/403 without auth, got {resp.status_code}"
 
 
 @pytest.mark.anyio

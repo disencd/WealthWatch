@@ -1,4 +1,5 @@
 """Tests for the Budget API (/api/v1/budget)."""
+
 import pytest
 from httpx import AsyncClient
 
@@ -7,12 +8,12 @@ from tests.conftest import auth_header, register_user
 BASE = "/api/v1/budget"
 
 DEFAULT_CATEGORY_NAMES = sorted(
-    ["Housing", "Utilities", "Food", "Transportation",
-     "Medical & Healthcare", "DayCare", "Church"]
+    ["Housing", "Utilities", "Food", "Transportation", "Medical & Healthcare", "DayCare", "Church"]
 )
 
 
 # ── helpers ────────────────────────────────────────────────────────
+
 
 async def _setup(client: AsyncClient):
     """Register a user and return (token, categories, subcategories)."""
@@ -34,6 +35,7 @@ def _find_sub(subs: list[dict], name: str) -> dict:
 
 
 # ── 1. Categories ──────────────────────────────────────────────────
+
 
 async def test_list_default_categories(client: AsyncClient):
     """Registration seeds exactly 7 default expense categories."""
@@ -78,18 +80,23 @@ async def test_create_category(client: AsyncClient):
     assert len(all_cats) == 8  # 7 default + 1 new
 
     # Filter by type
-    savings = (await client.get(
-        f"{BASE}/categories", headers=headers, params={"type": "savings"},
-    )).json()
+    savings = (
+        await client.get(
+            f"{BASE}/categories",
+            headers=headers,
+            params={"type": "savings"},
+        )
+    ).json()
     assert len(savings) == 1
     assert savings[0]["name"] == "Emergency Fund"
 
 
 # ── 2. Sub-categories ─────────────────────────────────────────────
 
+
 async def test_list_subcategories(client: AsyncClient):
     """Registration seeds default subcategories under each category."""
-    token, cats, subs = await _setup(client)
+    _token, cats, subs = await _setup(client)
 
     # Total default subcategories:
     # Housing(5) + Utilities(3) + Food(3) + Transportation(1) +
@@ -99,9 +106,7 @@ async def test_list_subcategories(client: AsyncClient):
     # Verify a few specific ones
     housing_cat = _find_cat(cats, "Housing")
     housing_subs = [s for s in subs if s["category_id"] == housing_cat["id"]]
-    assert sorted(s["name"] for s in housing_subs) == sorted(
-        ["ADU", "Home Improvement", "Movie", "Camping", "Hair"]
-    )
+    assert sorted(s["name"] for s in housing_subs) == sorted(["ADU", "Home Improvement", "Movie", "Camping", "Hair"])
 
 
 async def test_list_subcategories_filtered(client: AsyncClient):
@@ -119,9 +124,7 @@ async def test_list_subcategories_filtered(client: AsyncClient):
 
     food_subs = resp.json()
     assert len(food_subs) == 3
-    assert sorted(s["name"] for s in food_subs) == sorted(
-        ["Restaurant", "Grocery", "Indian Grocery"]
-    )
+    assert sorted(s["name"] for s in food_subs) == sorted(["Restaurant", "Grocery", "Indian Grocery"])
     # Each subcategory response should include the parent category
     for s in food_subs:
         assert s["category"]["name"] == "Food"
@@ -158,6 +161,7 @@ async def test_create_subcategory(client: AsyncClient):
 
 # ── 3. Budgets ─────────────────────────────────────────────────────
 
+
 async def test_create_budget_monthly(client: AsyncClient):
     """Create a monthly budget for a category."""
     token, cats, _ = await _setup(client)
@@ -188,9 +192,13 @@ async def test_create_budget_monthly(client: AsyncClient):
     assert body["is_active"] is True
 
     # Verify it appears in the list
-    budgets = (await client.get(
-        f"{BASE}/budgets", headers=headers, params={"year": 2025, "month": 6},
-    )).json()
+    budgets = (
+        await client.get(
+            f"{BASE}/budgets",
+            headers=headers,
+            params={"year": 2025, "month": 6},
+        )
+    ).json()
     assert len(budgets) == 1
     assert budgets[0]["id"] == body["id"]
 
@@ -241,6 +249,7 @@ async def test_create_budget_monthly_missing_month(client: AsyncClient):
 
 
 # ── 4. Budget Expenses ─────────────────────────────────────────────
+
 
 async def test_create_budget_expense(client: AsyncClient):
     """Create a budget expense transaction."""
@@ -335,26 +344,39 @@ async def test_list_budget_expenses_filtered(client: AsyncClient):
     assert len(all_expenses) == 3
 
     # Filter by year + month
-    june = (await client.get(
-        f"{BASE}/expenses", headers=headers, params={"year": 2025, "month": 6},
-    )).json()
+    june = (
+        await client.get(
+            f"{BASE}/expenses",
+            headers=headers,
+            params={"year": 2025, "month": 6},
+        )
+    ).json()
     assert len(june) == 2
 
-    july = (await client.get(
-        f"{BASE}/expenses", headers=headers, params={"year": 2025, "month": 7},
-    )).json()
+    july = (
+        await client.get(
+            f"{BASE}/expenses",
+            headers=headers,
+            params={"year": 2025, "month": 7},
+        )
+    ).json()
     assert len(july) == 1
     assert july[0]["title"] == "ADU repair"
 
     # Filter by category_id
-    food_expenses = (await client.get(
-        f"{BASE}/expenses", headers=headers, params={"category_id": food_cat["id"]},
-    )).json()
+    food_expenses = (
+        await client.get(
+            f"{BASE}/expenses",
+            headers=headers,
+            params={"category_id": food_cat["id"]},
+        )
+    ).json()
     assert len(food_expenses) == 2
     assert all(e["category_id"] == food_cat["id"] for e in food_expenses)
 
 
 # ── 5. Monthly Summary ────────────────────────────────────────────
+
 
 async def test_monthly_summary(client: AsyncClient):
     """Create multiple expenses and verify the monthly summary."""

@@ -1,5 +1,4 @@
-import pytest
-from tests.conftest import register_user, auth_header
+from tests.conftest import auth_header, register_user
 
 
 # ------------------------------------------------------------------ helpers
@@ -82,9 +81,7 @@ async def test_get_group_by_id(client):
     )
     group_id = create_resp.json()["id"]
 
-    resp = await client.get(
-        f"/api/v1/groups/{group_id}", headers=auth_header(token)
-    )
+    resp = await client.get(f"/api/v1/groups/{group_id}", headers=auth_header(token))
     assert resp.status_code == 200
 
     body = resp.json()
@@ -114,9 +111,7 @@ async def test_add_member(client):
     assert resp.status_code == 201
 
     # verify via group detail
-    detail = await client.get(
-        f"/api/v1/groups/{group_id}", headers=auth_header(token)
-    )
+    detail = await client.get(f"/api/v1/groups/{group_id}", headers=auth_header(token))
     member_ids = [m["id"] for m in detail.json().get("members", [])]
     assert second_user["id"] in member_ids
 
@@ -148,9 +143,7 @@ async def test_remove_member(client):
     assert resp.status_code == 204
 
     # verify removal
-    detail = await client.get(
-        f"/api/v1/groups/{group_id}", headers=auth_header(token)
-    )
+    detail = await client.get(f"/api/v1/groups/{group_id}", headers=auth_header(token))
     member_ids = [m["id"] for m in detail.json().get("members", [])]
     assert second_user["id"] not in member_ids
 
@@ -159,7 +152,5 @@ async def test_remove_member(client):
 async def test_get_nonexistent_group(client):
     token, _ = await _register_main(client)
 
-    resp = await client.get(
-        "/api/v1/groups/999999", headers=auth_header(token)
-    )
+    resp = await client.get("/api/v1/groups/999999", headers=auth_header(token))
     assert resp.status_code == 404

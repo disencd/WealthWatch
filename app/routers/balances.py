@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import TokenData, get_current_user
 from app.database import get_db
-from app.models import Split, Expense, User
+from app.models import Expense, Split, User
 
 router = APIRouter(prefix="/api/v1/balances", tags=["balances"])
 
@@ -17,20 +17,24 @@ async def get_balances(
     uid = current_user.user_id
 
     # Money owed TO the current user (they paid, others owe splits)
-    owed_to_me = (await db.execute(
-        select(Split.user_id, func.coalesce(func.sum(Split.amount), 0))
-        .join(Expense, Expense.id == Split.expense_id)
-        .where(Expense.payer_id == uid, Split.user_id != uid)
-        .group_by(Split.user_id)
-    )).all()
+    owed_to_me = (
+        await db.execute(
+            select(Split.user_id, func.coalesce(func.sum(Split.amount), 0))
+            .join(Expense, Expense.id == Split.expense_id)
+            .where(Expense.payer_id == uid, Split.user_id != uid)
+            .group_by(Split.user_id)
+        )
+    ).all()
 
     # Money the current user OWES (others paid, user has splits)
-    i_owe = (await db.execute(
-        select(Expense.payer_id, func.coalesce(func.sum(Split.amount), 0))
-        .join(Expense, Expense.id == Split.expense_id)
-        .where(Split.user_id == uid, Expense.payer_id != uid)
-        .group_by(Expense.payer_id)
-    )).all()
+    i_owe = (
+        await db.execute(
+            select(Expense.payer_id, func.coalesce(func.sum(Split.amount), 0))
+            .join(Expense, Expense.id == Split.expense_id)
+            .where(Split.user_id == uid, Expense.payer_id != uid)
+            .group_by(Expense.payer_id)
+        )
+    ).all()
 
     balances: dict[int, float] = {}
     for other_id, amt in owed_to_me:
@@ -55,17 +59,21 @@ async def get_balance_with_user(
 ):
     uid = current_user.user_id
 
-    owed = (await db.execute(
-        select(func.coalesce(func.sum(Split.amount), 0))
-        .join(Expense, Expense.id == Split.expense_id)
-        .where(Expense.payer_id == uid, Split.user_id == user_id)
-    )).scalar() or 0
+    owed = (
+        await db.execute(
+            select(func.coalesce(func.sum(Split.amount), 0))
+            .join(Expense, Expense.id == Split.expense_id)
+            .where(Expense.payer_id == uid, Split.user_id == user_id)
+        )
+    ).scalar() or 0
 
-    owes = (await db.execute(
-        select(func.coalesce(func.sum(Split.amount), 0))
-        .join(Expense, Expense.id == Split.expense_id)
-        .where(Expense.payer_id == user_id, Split.user_id == uid)
-    )).scalar() or 0
+    owes = (
+        await db.execute(
+            select(func.coalesce(func.sum(Split.amount), 0))
+            .join(Expense, Expense.id == Split.expense_id)
+            .where(Expense.payer_id == user_id, Split.user_id == uid)
+        )
+    ).scalar() or 0
 
     user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
     if not user:

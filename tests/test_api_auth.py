@@ -1,8 +1,6 @@
 """Tests for the auth API endpoints (/api/v1/auth/*)."""
 
-import pytest
-from tests.conftest import register_user, auth_header
-
+from tests.conftest import auth_header, register_user
 
 # ── Registration ─────────────────────────────────────────────────
 

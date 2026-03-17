@@ -1,7 +1,5 @@
-from typing import Optional
-
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func, extract, text
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import extract, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import TokenData, get_current_user
@@ -19,22 +17,25 @@ async def spending_trends(
 ):
     yr = extract("year", BudgetExpense.date).label("year")
     mo = extract("month", BudgetExpense.date).label("month")
-    rows = (await db.execute(
-        select(yr, mo, func.coalesce(func.sum(BudgetExpense.amount), 0).label("total_spent"))
-        .where(
-            BudgetExpense.family_id == current_user.family_id,
-            BudgetExpense.date >= func.now() - text(f"INTERVAL '{months} months'"),
+    rows = (
+        await db.execute(
+            select(yr, mo, func.coalesce(func.sum(BudgetExpense.amount), 0).label("total_spent"))
+            .where(
+                BudgetExpense.family_id == current_user.family_id,
+                BudgetExpense.date >= func.now() - text(f"INTERVAL '{months} months'"),
+            )
+            .group_by(yr, mo)
+            .order_by(yr, mo)
         )
-        .group_by(yr, mo)
-        .order_by(yr, mo)
-    )).all()
+    ).all()
     return [{"year": int(r[0]), "month": int(r[1]), "total_spent": float(r[2])} for r in rows]
 
 
 @router.get("/spending-by-merchant")
 async def spending_by_merchant(
-    year: Optional[int] = None, month: Optional[int] = None,
-    limit: Optional[int] = None,
+    year: int | None = None,
+    month: int | None = None,
+    limit: int | None = None,
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -60,27 +61,42 @@ async def spending_by_merchant(
 
 @router.get("/cashflow-sankey")
 async def cashflow_sankey(
-    year: int = Query(...), month: int = Query(...),
+    year: int = Query(...),
+    month: int = Query(...),
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     fid = current_user.family_id
 
-    income_rows = (await db.execute(
-        select(Category.name, func.coalesce(func.sum(BudgetExpense.amount), 0))
-        .join(Category, Category.id == BudgetExpense.category_id)
-        .where(BudgetExpense.family_id == fid, Category.type == CategoryType.savings,
-               extract("year", BudgetExpense.date) == year, extract("month", BudgetExpense.date) == month)
-        .group_by(Category.name).order_by(func.sum(BudgetExpense.amount).desc())
-    )).all()
+    income_rows = (
+        await db.execute(
+            select(Category.name, func.coalesce(func.sum(BudgetExpense.amount), 0))
+            .join(Category, Category.id == BudgetExpense.category_id)
+            .where(
+                BudgetExpense.family_id == fid,
+                Category.type == CategoryType.savings,
+                extract("year", BudgetExpense.date) == year,
+                extract("month", BudgetExpense.date) == month,
+            )
+            .group_by(Category.name)
+            .order_by(func.sum(BudgetExpense.amount).desc())
+        )
+    ).all()
 
-    expense_rows = (await db.execute(
-        select(Category.name, func.coalesce(func.sum(BudgetExpense.amount), 0))
-        .join(Category, Category.id == BudgetExpense.category_id)
-        .where(BudgetExpense.family_id == fid, Category.type == CategoryType.expense,
-               extract("year", BudgetExpense.date) == year, extract("month", BudgetExpense.date) == month)
-        .group_by(Category.name).order_by(func.sum(BudgetExpense.amount).desc())
-    )).all()
+    expense_rows = (
+        await db.execute(
+            select(Category.name, func.coalesce(func.sum(BudgetExpense.amount), 0))
+            .join(Category, Category.id == BudgetExpense.category_id)
+            .where(
+                BudgetExpense.family_id == fid,
+                Category.type == CategoryType.expense,
+                extract("year", BudgetExpense.date) == year,
+                extract("month", BudgetExpense.date) == month,
+            )
+            .group_by(Category.name)
+            .order_by(func.sum(BudgetExpense.amount).desc())
+        )
+    ).all()
 
     nodes = [{"id": "income", "name": "Income"}]
     links = []
@@ -103,31 +119,47 @@ async def cashflow_sankey(
 
 @router.get("/savings-rate")
 async def savings_rate(
-    year: int = Query(...), month: int = Query(...),
+    year: int = Query(...),
+    month: int = Query(...),
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     fid = current_user.family_id
 
-    total_income = (await db.execute(
-        select(func.coalesce(func.sum(BudgetExpense.amount), 0))
-        .join(Category, Category.id == BudgetExpense.category_id)
-        .where(BudgetExpense.family_id == fid, Category.type == CategoryType.savings,
-               extract("year", BudgetExpense.date) == year, extract("month", BudgetExpense.date) == month)
-    )).scalar() or 0
+    total_income = (
+        await db.execute(
+            select(func.coalesce(func.sum(BudgetExpense.amount), 0))
+            .join(Category, Category.id == BudgetExpense.category_id)
+            .where(
+                BudgetExpense.family_id == fid,
+                Category.type == CategoryType.savings,
+                extract("year", BudgetExpense.date) == year,
+                extract("month", BudgetExpense.date) == month,
+            )
+        )
+    ).scalar() or 0
 
-    total_expenses = (await db.execute(
-        select(func.coalesce(func.sum(BudgetExpense.amount), 0))
-        .join(Category, Category.id == BudgetExpense.category_id)
-        .where(BudgetExpense.family_id == fid, Category.type == CategoryType.expense,
-               extract("year", BudgetExpense.date) == year, extract("month", BudgetExpense.date) == month)
-    )).scalar() or 0
+    total_expenses = (
+        await db.execute(
+            select(func.coalesce(func.sum(BudgetExpense.amount), 0))
+            .join(Category, Category.id == BudgetExpense.category_id)
+            .where(
+                BudgetExpense.family_id == fid,
+                Category.type == CategoryType.expense,
+                extract("year", BudgetExpense.date) == year,
+                extract("month", BudgetExpense.date) == month,
+            )
+        )
+    ).scalar() or 0
 
     savings = float(total_income) - float(total_expenses)
     rate = (savings / float(total_income) * 100) if float(total_income) > 0 else 0
 
     return {
-        "year": year, "month": month,
-        "total_income": float(total_income), "total_expenses": float(total_expenses),
-        "savings": savings, "savings_rate": rate,
+        "year": year,
+        "month": month,
+        "total_income": float(total_income),
+        "total_expenses": float(total_expenses),
+        "savings": savings,
+        "savings_rate": rate,
     }

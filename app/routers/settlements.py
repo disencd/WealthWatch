@@ -1,13 +1,11 @@
-from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import select, or_
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import TokenData, get_current_user
 from app.database import get_db
-from app.models import Settlement, User
+from app.models import Settlement
 
 router = APIRouter(prefix="/api/v1/settlements", tags=["settlements"])
 
@@ -26,10 +24,16 @@ class UpdateStatusRequest(BaseModel):
 
 def _settle_dict(s: Settlement) -> dict:
     return {
-        "id": s.id, "from_user_id": s.from_user_id, "to_user_id": s.to_user_id,
-        "amount": s.amount, "currency": s.currency, "status": s.status,
-        "payment_method": s.payment_method, "notes": s.notes,
-        "created_at": str(s.created_at), "updated_at": str(s.updated_at),
+        "id": s.id,
+        "from_user_id": s.from_user_id,
+        "to_user_id": s.to_user_id,
+        "amount": s.amount,
+        "currency": s.currency,
+        "status": s.status,
+        "payment_method": s.payment_method,
+        "notes": s.notes,
+        "created_at": str(s.created_at),
+        "updated_at": str(s.updated_at),
     }
 
 
@@ -40,9 +44,13 @@ async def create_settlement(
     db: AsyncSession = Depends(get_db),
 ):
     s = Settlement(
-        from_user_id=current_user.user_id, to_user_id=req.to_user_id,
-        amount=req.amount, currency=req.currency,
-        payment_method=req.payment_method, notes=req.notes, status="pending",
+        from_user_id=current_user.user_id,
+        to_user_id=req.to_user_id,
+        amount=req.amount,
+        currency=req.currency,
+        payment_method=req.payment_method,
+        notes=req.notes,
+        status="pending",
     )
     db.add(s)
     await db.commit()
@@ -55,12 +63,19 @@ async def get_settlements(
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    rows = (await db.execute(
-        select(Settlement).where(
-            or_(Settlement.from_user_id == current_user.user_id,
-                Settlement.to_user_id == current_user.user_id)
-        ).order_by(Settlement.created_at.desc())
-    )).scalars().all()
+    rows = (
+        (
+            await db.execute(
+                select(Settlement)
+                .where(
+                    or_(Settlement.from_user_id == current_user.user_id, Settlement.to_user_id == current_user.user_id)
+                )
+                .order_by(Settlement.created_at.desc())
+            )
+        )
+        .scalars()
+        .all()
+    )
     return [_settle_dict(s) for s in rows]
 
 
@@ -78,7 +93,8 @@ async def get_settlement(
 
 @router.put("/{id}/status")
 async def update_settlement_status(
-    id: int, req: UpdateStatusRequest,
+    id: int,
+    req: UpdateStatusRequest,
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

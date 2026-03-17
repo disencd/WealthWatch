@@ -1,19 +1,25 @@
 from __future__ import annotations
 
 import enum
-from datetime import datetime, date
-from typing import Optional, List
+from datetime import datetime
 
 from sqlalchemy import (
-    String, Float, Integer, Boolean, DateTime, Date, Text,
-    ForeignKey, Enum, func, BigInteger,
+    Boolean,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
-
 # ── Enums ──────────────────────────────────────────────────────────
+
 
 class CategoryType(str, enum.Enum):
     expense = "expense"
@@ -68,12 +74,14 @@ class FamilyRole(str, enum.Enum):
 
 # ── Mixin ──────────────────────────────────────────────────────────
 
+
 class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
 # ── Models ─────────────────────────────────────────────────────────
+
 
 class User(TimestampMixin, Base):
     __tablename__ = "users"
@@ -83,12 +91,12 @@ class User(TimestampMixin, Base):
     last_name: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
     password: Mapped[str] = mapped_column(String, nullable=False)
-    phone: Mapped[Optional[str]] = mapped_column(String, default="")
-    avatar: Mapped[Optional[str]] = mapped_column(String, default="")
+    phone: Mapped[str | None] = mapped_column(String, default="")
+    avatar: Mapped[str | None] = mapped_column(String, default="")
 
-    groups: Mapped[List["Group"]] = relationship(secondary="group_members", back_populates="members")
-    expenses: Mapped[List["Expense"]] = relationship(foreign_keys="Expense.payer_id", back_populates="payer")
-    splits: Mapped[List["Split"]] = relationship(foreign_keys="Split.user_id", back_populates="user")
+    groups: Mapped[list[Group]] = relationship(secondary="group_members", back_populates="members")
+    expenses: Mapped[list[Expense]] = relationship(foreign_keys="Expense.payer_id", back_populates="payer")
+    splits: Mapped[list[Split]] = relationship(foreign_keys="Split.user_id", back_populates="user")
 
     @property
     def full_name(self) -> str:
@@ -103,8 +111,8 @@ class Family(TimestampMixin, Base):
     currency: Mapped[str] = mapped_column(String, nullable=False, default="USD")
     owner_user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
 
-    owner: Mapped["User"] = relationship(foreign_keys=[owner_user_id])
-    members: Mapped[List["FamilyMembership"]] = relationship(back_populates="family")
+    owner: Mapped[User] = relationship(foreign_keys=[owner_user_id])
+    members: Mapped[list[FamilyMembership]] = relationship(back_populates="family")
 
 
 class FamilyMembership(TimestampMixin, Base):
@@ -116,8 +124,8 @@ class FamilyMembership(TimestampMixin, Base):
     role: Mapped[FamilyRole] = mapped_column(Enum(FamilyRole), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="active")
 
-    family: Mapped["Family"] = relationship(back_populates="members")
-    user: Mapped["User"] = relationship()
+    family: Mapped[Family] = relationship(back_populates="members")
+    user: Mapped[User] = relationship()
 
 
 class Category(TimestampMixin, Base):
@@ -127,11 +135,11 @@ class Category(TimestampMixin, Base):
     family_id: Mapped[int] = mapped_column(Integer, ForeignKey("families.id"), nullable=False, index=True)
     type: Mapped[CategoryType] = mapped_column(Enum(CategoryType), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text, default="")
+    description: Mapped[str | None] = mapped_column(Text, default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    family: Mapped["Family"] = relationship()
-    sub_categories: Mapped[List["SubCategory"]] = relationship(back_populates="category")
+    family: Mapped[Family] = relationship()
+    sub_categories: Mapped[list[SubCategory]] = relationship(back_populates="category")
 
 
 class SubCategory(TimestampMixin, Base):
@@ -141,11 +149,11 @@ class SubCategory(TimestampMixin, Base):
     family_id: Mapped[int] = mapped_column(Integer, ForeignKey("families.id"), nullable=False, index=True)
     category_id: Mapped[int] = mapped_column(Integer, ForeignKey("categories.id"), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text, default="")
+    description: Mapped[str | None] = mapped_column(Text, default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    family: Mapped["Family"] = relationship()
-    category: Mapped["Category"] = relationship(back_populates="sub_categories")
+    family: Mapped[Family] = relationship()
+    category: Mapped[Category] = relationship(back_populates="sub_categories")
 
 
 class Budget(TimestampMixin, Base):
@@ -154,17 +162,17 @@ class Budget(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     family_id: Mapped[int] = mapped_column(Integer, ForeignKey("families.id"), nullable=False, index=True)
     created_by_user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    category_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("categories.id"), index=True)
-    sub_category_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("sub_categories.id"), index=True)
+    category_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("categories.id"), index=True)
+    sub_category_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("sub_categories.id"), index=True)
     period: Mapped[BudgetPeriod] = mapped_column(Enum(BudgetPeriod), nullable=False)
     year: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-    month: Mapped[Optional[int]] = mapped_column(Integer, index=True)
+    month: Mapped[int | None] = mapped_column(Integer, index=True)
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    family: Mapped["Family"] = relationship()
-    category: Mapped[Optional["Category"]] = relationship()
-    sub_category: Mapped[Optional["SubCategory"]] = relationship()
+    family: Mapped[Family] = relationship()
+    category: Mapped[Category | None] = relationship()
+    sub_category: Mapped[SubCategory | None] = relationship()
 
 
 class BudgetExpense(TimestampMixin, Base):
@@ -176,16 +184,16 @@ class BudgetExpense(TimestampMixin, Base):
     category_id: Mapped[int] = mapped_column(Integer, ForeignKey("categories.id"), nullable=False, index=True)
     sub_category_id: Mapped[int] = mapped_column(Integer, ForeignKey("sub_categories.id"), nullable=False, index=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text, default="")
+    description: Mapped[str | None] = mapped_column(Text, default="")
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     currency: Mapped[str] = mapped_column(String, nullable=False, default="USD")
     date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
-    merchant: Mapped[Optional[str]] = mapped_column(String, default="")
-    notes: Mapped[Optional[str]] = mapped_column(Text, default="")
+    merchant: Mapped[str | None] = mapped_column(String, default="")
+    notes: Mapped[str | None] = mapped_column(Text, default="")
 
-    family: Mapped["Family"] = relationship()
-    category: Mapped["Category"] = relationship()
-    sub_category: Mapped["SubCategory"] = relationship()
+    family: Mapped[Family] = relationship()
+    category: Mapped[Category] = relationship()
+    sub_category: Mapped[SubCategory] = relationship()
 
 
 class Group(TimestampMixin, Base):
@@ -193,13 +201,13 @@ class Group(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text, default="")
-    avatar: Mapped[Optional[str]] = mapped_column(String, default="")
+    description: Mapped[str | None] = mapped_column(Text, default="")
+    avatar: Mapped[str | None] = mapped_column(String, default="")
     created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
 
-    members: Mapped[List["User"]] = relationship(secondary="group_members", back_populates="groups")
-    expenses: Mapped[List["Expense"]] = relationship(back_populates="group")
-    creator: Mapped["User"] = relationship(foreign_keys=[created_by])
+    members: Mapped[list[User]] = relationship(secondary="group_members", back_populates="groups")
+    expenses: Mapped[list[Expense]] = relationship(back_populates="group")
+    creator: Mapped[User] = relationship(foreign_keys=[created_by])
 
 
 class GroupMember(Base):
@@ -216,16 +224,16 @@ class Expense(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text, default="")
+    description: Mapped[str | None] = mapped_column(Text, default="")
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     currency: Mapped[str] = mapped_column(String, default="USD")
     date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     payer_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    group_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("groups.id"))
-    category: Mapped[Optional[str]] = mapped_column(String, default="")
-    payer: Mapped["User"] = relationship(foreign_keys=[payer_id], back_populates="expenses")
-    group: Mapped[Optional["Group"]] = relationship(back_populates="expenses")
-    splits: Mapped[List["Split"]] = relationship(back_populates="expense")
+    group_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("groups.id"))
+    category: Mapped[str | None] = mapped_column(String, default="")
+    payer: Mapped[User] = relationship(foreign_keys=[payer_id], back_populates="expenses")
+    group: Mapped[Group | None] = relationship(back_populates="expenses")
+    splits: Mapped[list[Split]] = relationship(back_populates="expense")
 
 
 class Split(TimestampMixin, Base):
@@ -235,10 +243,10 @@ class Split(TimestampMixin, Base):
     expense_id: Mapped[int] = mapped_column(Integer, ForeignKey("expenses.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     amount: Mapped[float] = mapped_column(Float, nullable=False)
-    percentage: Mapped[Optional[float]] = mapped_column(Float, default=0)
+    percentage: Mapped[float | None] = mapped_column(Float, default=0)
 
-    expense: Mapped["Expense"] = relationship(back_populates="splits")
-    user: Mapped["User"] = relationship(foreign_keys=[user_id], back_populates="splits")
+    expense: Mapped[Expense] = relationship(back_populates="splits")
+    user: Mapped[User] = relationship(foreign_keys=[user_id], back_populates="splits")
 
 
 class Settlement(TimestampMixin, Base):
@@ -250,11 +258,11 @@ class Settlement(TimestampMixin, Base):
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     currency: Mapped[str] = mapped_column(String, default="USD")
     status: Mapped[str] = mapped_column(String, default="pending")
-    payment_method: Mapped[Optional[str]] = mapped_column(String, default="")
-    notes: Mapped[Optional[str]] = mapped_column(Text, default="")
+    payment_method: Mapped[str | None] = mapped_column(String, default="")
+    notes: Mapped[str | None] = mapped_column(Text, default="")
 
-    from_user: Mapped["User"] = relationship(foreign_keys=[from_user_id])
-    to_user: Mapped["User"] = relationship(foreign_keys=[to_user_id])
+    from_user: Mapped[User] = relationship(foreign_keys=[from_user_id])
+    to_user: Mapped[User] = relationship(foreign_keys=[to_user_id])
 
 
 class Account(TimestampMixin, Base):
@@ -266,14 +274,16 @@ class Account(TimestampMixin, Base):
     institution_name: Mapped[str] = mapped_column(String, nullable=False)
     account_name: Mapped[str] = mapped_column(String, nullable=False)
     account_type: Mapped[AccountType] = mapped_column(Enum(AccountType), nullable=False)
-    ownership: Mapped[AccountOwnership] = mapped_column(Enum(AccountOwnership), nullable=False, default=AccountOwnership.ours)
+    ownership: Mapped[AccountOwnership] = mapped_column(
+        Enum(AccountOwnership), nullable=False, default=AccountOwnership.ours
+    )
     balance: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     currency: Mapped[str] = mapped_column(String, nullable=False, default="USD")
     is_asset: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    last_synced_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime)
 
-    family: Mapped["Family"] = relationship()
+    family: Mapped[Family] = relationship()
 
 
 class InvestmentHolding(TimestampMixin, Base):
@@ -291,10 +301,10 @@ class InvestmentHolding(TimestampMixin, Base):
     current_value: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     gain_loss: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     gain_loss_percent: Mapped[float] = mapped_column(Float, nullable=False, default=0)
-    last_updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    last_updated_at: Mapped[datetime | None] = mapped_column(DateTime)
 
-    account: Mapped["Account"] = relationship()
-    family: Mapped["Family"] = relationship()
+    account: Mapped[Account] = relationship()
+    family: Mapped[Family] = relationship()
 
 
 class NetWorthSnapshot(TimestampMixin, Base):
@@ -307,7 +317,7 @@ class NetWorthSnapshot(TimestampMixin, Base):
     total_liabilities: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     net_worth: Mapped[float] = mapped_column(Float, nullable=False, default=0)
 
-    family: Mapped["Family"] = relationship()
+    family: Mapped[Family] = relationship()
 
 
 class RecurringTransaction(TimestampMixin, Base):
@@ -320,16 +330,16 @@ class RecurringTransaction(TimestampMixin, Base):
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     currency: Mapped[str] = mapped_column(String, nullable=False, default="USD")
     frequency: Mapped[RecurringFrequency] = mapped_column(Enum(RecurringFrequency), nullable=False)
-    category_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("categories.id"), index=True)
-    sub_category_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("sub_categories.id"), index=True)
+    category_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("categories.id"), index=True)
+    sub_category_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("sub_categories.id"), index=True)
     next_due_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     auto_detected: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    notes: Mapped[Optional[str]] = mapped_column(Text, default="")
+    notes: Mapped[str | None] = mapped_column(Text, default="")
 
-    family: Mapped["Family"] = relationship()
-    category: Mapped[Optional["Category"]] = relationship()
-    sub_category: Mapped[Optional["SubCategory"]] = relationship()
+    family: Mapped[Family] = relationship()
+    category: Mapped[Category | None] = relationship()
+    sub_category: Mapped[SubCategory | None] = relationship()
 
 
 class AutoCategoryRule(TimestampMixin, Base):
@@ -339,14 +349,13 @@ class AutoCategoryRule(TimestampMixin, Base):
     family_id: Mapped[int] = mapped_column(Integer, ForeignKey("families.id"), nullable=False, index=True)
     created_by_user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     merchant_pattern: Mapped[str] = mapped_column(String, nullable=False)
-    min_amount: Mapped[Optional[float]] = mapped_column(Float)
-    max_amount: Mapped[Optional[float]] = mapped_column(Float)
+    min_amount: Mapped[float | None] = mapped_column(Float)
+    max_amount: Mapped[float | None] = mapped_column(Float)
     category_id: Mapped[int] = mapped_column(Integer, ForeignKey("categories.id"), nullable=False, index=True)
-    sub_category_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("sub_categories.id"), index=True)
+    sub_category_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("sub_categories.id"), index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
-    family: Mapped["Family"] = relationship()
-    category: Mapped["Category"] = relationship()
-    sub_category: Mapped[Optional["SubCategory"]] = relationship()
-
+    family: Mapped[Family] = relationship()
+    category: Mapped[Category] = relationship()
+    sub_category: Mapped[SubCategory | None] = relationship()

@@ -1,11 +1,9 @@
 """API tests for the expenses router (/api/v1/expenses)."""
 
-import pytest
-
-from tests.conftest import register_user, auth_header
-
+from tests.conftest import auth_header, register_user
 
 # ── Helpers ───────────────────────────────────────────────────────
+
 
 async def _create_expense(client, token, **overrides):
     """Create an expense with sensible defaults; return the response."""
@@ -17,11 +15,14 @@ async def _create_expense(client, token, **overrides):
     }
     payload.update(overrides)
     return await client.post(
-        "/api/v1/expenses", json=payload, headers=auth_header(token),
+        "/api/v1/expenses",
+        json=payload,
+        headers=auth_header(token),
     )
 
 
 # ── Tests ─────────────────────────────────────────────────────────
+
 
 async def test_create_expense_with_splits(client):
     """POST /expenses with splits returns 201 and persists splits."""
@@ -34,7 +35,8 @@ async def test_create_expense_with_splits(client):
     other_id = data2["user"]["id"]
 
     resp = await _create_expense(
-        client, token,
+        client,
+        token,
         title="Team lunch",
         amount=100.0,
         date="2025-03-10T00:00:00",
@@ -53,7 +55,8 @@ async def test_create_expense_with_splits(client):
 
     # Verify the expense detail includes splits
     detail = await client.get(
-        f"/api/v1/expenses/{body['id']}", headers=auth_header(token),
+        f"/api/v1/expenses/{body['id']}",
+        headers=auth_header(token),
     )
     assert detail.status_code == 200
     splits = detail.json()["splits"]
@@ -68,7 +71,8 @@ async def test_create_expense_without_splits(client):
     token = data["token"]
 
     resp = await _create_expense(
-        client, token,
+        client,
+        token,
         title="Solo coffee",
         amount=5.50,
         date="2025-02-01T00:00:00",
@@ -81,7 +85,8 @@ async def test_create_expense_without_splits(client):
 
     # Confirm the detail has zero splits
     detail = await client.get(
-        f"/api/v1/expenses/{body['id']}", headers=auth_header(token),
+        f"/api/v1/expenses/{body['id']}",
+        headers=auth_header(token),
     )
     assert detail.status_code == 200
     assert detail.json()["splits"] == []
@@ -112,12 +117,17 @@ async def test_get_expense_by_id(client):
     token = data["token"]
 
     create_resp = await _create_expense(
-        client, token, title="Groceries", amount=45.0, date="2025-04-20T00:00:00",
+        client,
+        token,
+        title="Groceries",
+        amount=45.0,
+        date="2025-04-20T00:00:00",
     )
     expense_id = create_resp.json()["id"]
 
     resp = await client.get(
-        f"/api/v1/expenses/{expense_id}", headers=auth_header(token),
+        f"/api/v1/expenses/{expense_id}",
+        headers=auth_header(token),
     )
 
     assert resp.status_code == 200
@@ -134,7 +144,8 @@ async def test_get_expense_not_found(client):
     token = data["token"]
 
     resp = await client.get(
-        "/api/v1/expenses/99999", headers=auth_header(token),
+        "/api/v1/expenses/99999",
+        headers=auth_header(token),
     )
     assert resp.status_code == 404
 
@@ -161,7 +172,8 @@ async def test_create_expense_optional_fields(client):
     token = data["token"]
 
     resp = await _create_expense(
-        client, token,
+        client,
+        token,
         title="Flight",
         amount=350.0,
         date="2025-05-10T00:00:00",
@@ -173,7 +185,8 @@ async def test_create_expense_optional_fields(client):
     assert resp.status_code == 201
 
     detail = await client.get(
-        f"/api/v1/expenses/{resp.json()['id']}", headers=auth_header(token),
+        f"/api/v1/expenses/{resp.json()['id']}",
+        headers=auth_header(token),
     )
     body = detail.json()
     assert body["currency"] == "EUR"

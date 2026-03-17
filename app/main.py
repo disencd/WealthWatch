@@ -11,12 +11,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_user
 from app.config import get_settings
-from app.database import get_db, init_db, dispose_engine, engine
+from app.database import dispose_engine, engine, get_db, init_db
 from app.models import User
 from app.routers import (
-    auth, family, budget, account, investment,
-    recurring, rules, reports,
-    expenses, groups, balances, settlements,
+    account,
+    auth,
+    balances,
+    budget,
+    expenses,
+    family,
+    groups,
+    investment,
+    recurring,
+    reports,
+    rules,
+    settlements,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -83,9 +92,11 @@ if os.path.isdir(WEB_DIR):
             raise HTTPException(403, "Forbidden")
         if full_path and os.path.isfile(file_path):
             import mimetypes
+
             mt, _ = mimetypes.guess_type(file_path)
             with open(file_path, "rb") as f:
                 from fastapi.responses import Response
+
                 return Response(content=f.read(), media_type=mt or "application/octet-stream")
         # Fall back to index.html for SPA client-side routing
         index_path = os.path.join(WEB_DIR, "index.html")
@@ -102,9 +113,14 @@ async def profile_shortcut(
     if not user:
         raise HTTPException(404, "User not found")
     return {
-        "id": user.id, "first_name": user.first_name, "last_name": user.last_name,
-        "email": user.email, "phone": user.phone, "avatar": user.avatar,
-        "created_at": str(user.created_at), "updated_at": str(user.updated_at),
+        "id": user.id,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "email": user.email,
+        "phone": user.phone,
+        "avatar": user.avatar,
+        "created_at": str(user.created_at),
+        "updated_at": str(user.updated_at),
     }
 
 

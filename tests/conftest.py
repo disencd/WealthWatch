@@ -3,6 +3,7 @@
 Provides an async SQLite-backed test DB, a FastAPI test client,
 and helper functions to register users and get auth tokens.
 """
+
 import os
 
 # Set test env vars BEFORE any app imports
@@ -62,6 +63,7 @@ async def db():
 
 
 # ── Helper functions ──────────────────────────────────────────────
+
 
 async def register_user(client: AsyncClient, **kwargs) -> dict:
     """Register a user and return the response JSON (token + user)."""

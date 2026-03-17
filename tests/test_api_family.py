@@ -1,5 +1,4 @@
-import pytest
-from tests.conftest import register_user, auth_header
+from tests.conftest import auth_header, register_user
 
 
 # ------------------------------------------------------------------ helpers
@@ -55,7 +54,7 @@ async def test_create_family(client):
     assert body["currency"] == "EUR"
 
 
-# ------------------------------------------------ 3. list members (should have 1 – self)
+# ------------------------------------------------ 3. list members (should have 1 - self)
 async def test_list_members_self(client):
     token, user = await _register_main(client)
 
@@ -133,9 +132,7 @@ async def test_remove_member(client):
     assert resp.status_code == 204
 
     # verify they are gone
-    members_resp = await client.get(
-        "/api/v1/families/members", headers=auth_header(token)
-    )
+    members_resp = await client.get("/api/v1/families/members", headers=auth_header(token))
     member_emails = [m["user"]["email"] for m in members_resp.json()]
     assert second_user["email"] not in member_emails
 

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import ssl
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
@@ -35,7 +35,7 @@ def _build_engine():
             pool_pre_ping=True,
             pool_size=5,
             max_overflow=2,
-            pool_recycle=300,   # Neon closes idle connections aggressively
+            pool_recycle=300,  # Neon closes idle connections aggressively
             pool_timeout=30,
             connect_args=connect_args,
         )
@@ -54,11 +54,24 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db(max_retries: int = 10) -> None:
-    from app.models import (  # noqa: F401 – ensure all models are imported
-        User, Family, FamilyMembership, Category, SubCategory, Budget,
-        BudgetExpense, Group, GroupMember, Expense, Split, Settlement,
-        Account, InvestmentHolding, NetWorthSnapshot, RecurringTransaction,
+    from app.models import (  # noqa: F401 - ensure all models are imported
+        Account,
         AutoCategoryRule,
+        Budget,
+        BudgetExpense,
+        Category,
+        Expense,
+        Family,
+        FamilyMembership,
+        Group,
+        GroupMember,
+        InvestmentHolding,
+        NetWorthSnapshot,
+        RecurringTransaction,
+        Settlement,
+        Split,
+        SubCategory,
+        User,
     )
 
     for attempt in range(1, max_retries + 1):

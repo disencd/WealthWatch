@@ -1,5 +1,4 @@
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -30,14 +29,14 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def create_token(user_id: int, email: str, family_id: int, role: str) -> str:
     settings = get_settings()
-    expire = datetime.now(timezone.utc) + timedelta(seconds=settings.jwt_expiry_seconds)
+    expire = datetime.now(UTC) + timedelta(seconds=settings.jwt_expiry_seconds)
     payload = {
         "user_id": user_id,
         "email": email,
         "family_id": family_id,
         "role": role,
         "exp": expire,
-        "iat": datetime.now(timezone.utc),
+        "iat": datetime.now(UTC),
         "iss": "wealthwatch",
     }
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
@@ -53,8 +52,8 @@ def decode_token(token: str) -> TokenData:
             family_id=payload["family_id"],
             role=payload["role"],
         )
-    except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    except JWTError as err:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from err
 
 
 def get_current_user(
@@ -68,4 +67,5 @@ def require_role(*allowed: str):
         if current_user.role not in allowed:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
         return current_user
+
     return dependency

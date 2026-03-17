@@ -1,12 +1,15 @@
 """Unit tests for auth utilities (no DB required)."""
+
 import os
+
 import pytest
+from fastapi import HTTPException
 
 os.environ.setdefault("JWT_SECRET", "test-secret-key")
 os.environ.setdefault("DB_HOST", "localhost")
 os.environ.setdefault("DB_PASSWORD", "test")
 
-from app.auth import hash_password, verify_password, create_token, decode_token
+from app.auth import create_token, decode_token, hash_password, verify_password
 
 
 def test_hash_and_verify_password():
@@ -28,7 +31,7 @@ def test_create_and_decode_token():
 
 
 def test_decode_invalid_token():
-    with pytest.raises(Exception):
+    with pytest.raises(HTTPException):
         decode_token("invalid.token.here")
 
 

@@ -1,16 +1,36 @@
 """Unit tests to verify all models import and have correct table names."""
+
 import os
+
 os.environ.setdefault("JWT_SECRET", "test-secret-key")
 os.environ.setdefault("DB_HOST", "localhost")
 os.environ.setdefault("DB_PASSWORD", "test")
 
 from app.models import (
-    User, Family, FamilyMembership, Category, SubCategory,
-    Budget, BudgetExpense, Group, GroupMember, Expense, Split,
-    Settlement, Account, InvestmentHolding, NetWorthSnapshot,
-    RecurringTransaction, AutoCategoryRule,
-    CategoryType, BudgetPeriod, AccountType, AccountOwnership,
-    InvestmentType, RecurringFrequency, FamilyRole,
+    Account,
+    AccountOwnership,
+    AccountType,
+    AutoCategoryRule,
+    Budget,
+    BudgetExpense,
+    BudgetPeriod,
+    Category,
+    CategoryType,
+    Expense,
+    Family,
+    FamilyMembership,
+    FamilyRole,
+    Group,
+    GroupMember,
+    InvestmentHolding,
+    InvestmentType,
+    NetWorthSnapshot,
+    RecurringFrequency,
+    RecurringTransaction,
+    Settlement,
+    Split,
+    SubCategory,
+    User,
 )
 
 
@@ -48,5 +68,6 @@ def test_enums():
 def test_model_count():
     """Ensure we have all 17 models."""
     from app.database import Base
+
     tables = Base.metadata.tables
     assert len(tables) == 17, f"Expected 17 tables, got {len(tables)}: {list(tables.keys())}"

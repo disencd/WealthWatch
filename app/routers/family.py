@@ -47,7 +47,9 @@ async def create_family(
     family = Family(name=req.name, currency=req.currency, owner_user_id=current_user.user_id)
     db.add(family)
     await db.flush()
-    db.add(FamilyMembership(family_id=family.id, user_id=current_user.user_id, role=FamilyRole.superadmin, status="active"))
+    db.add(
+        FamilyMembership(family_id=family.id, user_id=current_user.user_id, role=FamilyRole.superadmin, status="active")
+    )
     await db.commit()
     await db.refresh(family)
     return {"id": family.id, "name": family.name, "currency": family.currency}
@@ -65,8 +67,13 @@ async def list_members(
     )
     rows = result.all()
     return [
-        {"id": m.id, "user_id": m.user_id, "role": m.role.value, "status": m.status,
-         "user": {"id": u.id, "first_name": u.first_name, "last_name": u.last_name, "email": u.email}}
+        {
+            "id": m.id,
+            "user_id": m.user_id,
+            "role": m.role.value,
+            "status": m.status,
+            "user": {"id": u.id, "first_name": u.first_name, "last_name": u.last_name, "email": u.email},
+        }
         for m, u in rows
     ]
 
@@ -80,9 +87,13 @@ async def add_member(
     user = (await db.execute(select(User).where(User.email == req.email))).scalar_one_or_none()
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
-    existing = (await db.execute(
-        select(FamilyMembership).where(FamilyMembership.family_id == current_user.family_id, FamilyMembership.user_id == user.id)
-    )).scalar_one_or_none()
+    existing = (
+        await db.execute(
+            select(FamilyMembership).where(
+                FamilyMembership.family_id == current_user.family_id, FamilyMembership.user_id == user.id
+            )
+        )
+    ).scalar_one_or_none()
     if existing:
         raise HTTPException(status.HTTP_409_CONFLICT, "User already a member")
     role = FamilyRole(req.role) if req.role in [r.value for r in FamilyRole] else FamilyRole.member
@@ -99,9 +110,13 @@ async def update_member_role(
     current_user: TokenData = Depends(require_role("superadmin")),
     db: AsyncSession = Depends(get_db),
 ):
-    mem = (await db.execute(
-        select(FamilyMembership).where(FamilyMembership.id == member_id, FamilyMembership.family_id == current_user.family_id)
-    )).scalar_one_or_none()
+    mem = (
+        await db.execute(
+            select(FamilyMembership).where(
+                FamilyMembership.id == member_id, FamilyMembership.family_id == current_user.family_id
+            )
+        )
+    ).scalar_one_or_none()
     if not mem:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Member not found")
     mem.role = FamilyRole(req.role)
@@ -115,9 +130,13 @@ async def remove_member(
     current_user: TokenData = Depends(require_role("superadmin")),
     db: AsyncSession = Depends(get_db),
 ):
-    mem = (await db.execute(
-        select(FamilyMembership).where(FamilyMembership.id == member_id, FamilyMembership.family_id == current_user.family_id)
-    )).scalar_one_or_none()
+    mem = (
+        await db.execute(
+            select(FamilyMembership).where(
+                FamilyMembership.id == member_id, FamilyMembership.family_id == current_user.family_id
+            )
+        )
+    ).scalar_one_or_none()
     if not mem:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Member not found")
     await db.delete(mem)

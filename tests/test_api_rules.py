@@ -10,6 +10,7 @@ CATEGORIES_URL = "/api/v1/budget/categories"
 
 # ── helpers ───────────────────────────────────────────────────────
 
+
 async def _get_category_id(client, headers) -> int:
     """Return the id of the first default category for this family."""
     resp = await client.get(CATEGORIES_URL, headers=headers)
@@ -33,6 +34,7 @@ async def _create_rule(client, headers, category_id: int, **overrides) -> dict:
 
 
 # ── tests ─────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_create_rule(client):
