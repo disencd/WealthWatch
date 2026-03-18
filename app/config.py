@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     JWT_EXPIRES_IN: str = "168h"
     JWT_ALGORITHM: str = "HS256"
 
+    # Google OAuth
+    GOOGLE_CLIENT_ID: str = ""
+
     # App
     PORT: int = 8080
     ALLOWED_ORIGINS: str = ""  # comma-separated origins, "*" for dev

@@ -90,7 +90,8 @@ class User(TimestampMixin, Base):
     first_name: Mapped[str] = mapped_column(String, nullable=False)
     last_name: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False, index=True)
-    password: Mapped[str] = mapped_column(String, nullable=False)
+    password: Mapped[str | None] = mapped_column(String, nullable=True, default="")
+    google_id: Mapped[str | None] = mapped_column(String, unique=True, nullable=True, index=True)
     phone: Mapped[str | None] = mapped_column(String, default="")
     avatar: Mapped[str | None] = mapped_column(String, default="")
 

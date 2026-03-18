@@ -1,4 +1,8 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +14,7 @@ from app.auth import (
     hash_password,
     verify_password,
 )
+from app.config import get_settings
 from app.database import get_db
 from app.models import (
     Category,
@@ -20,6 +25,8 @@ from app.models import (
     SubCategory,
     User,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -63,6 +70,10 @@ DEFAULT_SUBCATEGORIES: dict[str, list[str]] = {
 }
 
 
+class GoogleAuthRequest(BaseModel):
+    credential: str
+
+
 def _user_dict(u: User) -> dict:
     return {
         "id": u.id,
@@ -76,27 +87,12 @@ def _user_dict(u: User) -> dict:
     }
 
 
-@router.post("/register", status_code=status.HTTP_201_CREATED)
-async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    existing = (await db.execute(select(User).where(User.email == req.email))).scalar_one_or_none()
-    if existing:
-        raise HTTPException(status.HTTP_409_CONFLICT, "User with this email already exists")
-
-    user = User(
-        first_name=req.first_name,
-        last_name=req.last_name,
-        email=req.email,
-        password=hash_password(req.password),
-        phone=req.phone,
-    )
-    db.add(user)
-    await db.flush()
-
-    family = Family(name=f"{req.first_name} {req.last_name} Family", currency="USD", owner_user_id=user.id)
+async def _seed_family_and_categories(db: AsyncSession, user: User, family_name: str) -> FamilyMembership:
+    """Create a family with default categories and return the superadmin membership."""
+    family = Family(name=family_name, currency="USD", owner_user_id=user.id)
     db.add(family)
     await db.flush()
 
-    # Seed default expense categories
     cat_map: dict[str, int] = {}
     for name in DEFAULT_EXPENSE_CATEGORIES:
         exists = (
@@ -114,7 +110,6 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
             await db.flush()
             cat_map[name] = cat.id
 
-    # Seed default subcategories
     for cat_name, sub_names in DEFAULT_SUBCATEGORIES.items():
         cat_id = cat_map.get(cat_name)
         if not cat_id:
@@ -139,17 +134,37 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
         status="active",
     )
     db.add(membership)
+    return membership
+
+
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    existing = (await db.execute(select(User).where(User.email == req.email))).scalar_one_or_none()
+    if existing:
+        raise HTTPException(status.HTTP_409_CONFLICT, "User with this email already exists")
+
+    user = User(
+        first_name=req.first_name,
+        last_name=req.last_name,
+        email=req.email,
+        password=hash_password(req.password),
+        phone=req.phone,
+    )
+    db.add(user)
+    await db.flush()
+
+    membership = await _seed_family_and_categories(db, user, f"{req.first_name} {req.last_name} Family")
     await db.commit()
     await db.refresh(user)
 
-    token = create_token(user.id, user.email, family.id, membership.role.value)
+    token = create_token(user.id, user.email, membership.family_id, membership.role.value)
     return AuthResponse(token=token, user=_user_dict(user))
 
 
 @router.post("/login")
 async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
     user = (await db.execute(select(User).where(User.email == req.email))).scalar_one_or_none()
-    if not user or not verify_password(req.password, user.password):
+    if not user or not user.password or not verify_password(req.password, user.password):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid credentials")
 
     membership = (
@@ -179,3 +194,78 @@ async def get_profile(
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
     return _user_dict(user)
+
+
+@router.post("/google")
+async def google_auth(req: GoogleAuthRequest, db: AsyncSession = Depends(get_db)):
+    """Authenticate with a Google ID token. Creates account on first login."""
+    settings = get_settings()
+    if not settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, "Google sign-in is not configured")
+
+    try:
+        idinfo = google_id_token.verify_oauth2_token(
+            req.credential, google_requests.Request(), settings.GOOGLE_CLIENT_ID
+        )
+    except ValueError as exc:
+        logger.warning("Google token verification failed")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid Google token") from exc
+
+    google_id = idinfo["sub"]
+    email = idinfo.get("email", "")
+    if not email:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Google account has no email")
+
+    # Look up by google_id first, then by email
+    user = (await db.execute(select(User).where(User.google_id == google_id))).scalar_one_or_none()
+    if not user:
+        user = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
+
+    if user:
+        # Link google_id if not already set
+        if not user.google_id:
+            user.google_id = google_id
+        # Update avatar from Google if user has none
+        if not user.avatar and idinfo.get("picture"):
+            user.avatar = idinfo["picture"]
+        await db.commit()
+        await db.refresh(user)
+
+        # Find active family membership
+        membership = (
+            (
+                await db.execute(
+                    select(FamilyMembership)
+                    .where(FamilyMembership.user_id == user.id, FamilyMembership.status == "active")
+                    .order_by(FamilyMembership.id)
+                )
+            )
+            .scalars()
+            .first()
+        )
+        if not membership:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "User is not part of any active family")
+
+        token = create_token(user.id, user.email, membership.family_id, membership.role.value)
+        return AuthResponse(token=token, user=_user_dict(user))
+
+    # New user — auto-register
+    first_name = idinfo.get("given_name", email.split("@")[0])
+    last_name = idinfo.get("family_name", "")
+
+    user = User(
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
+        google_id=google_id,
+        avatar=idinfo.get("picture", ""),
+    )
+    db.add(user)
+    await db.flush()
+
+    membership = await _seed_family_and_categories(db, user, f"{first_name} {last_name} Family")
+    await db.commit()
+    await db.refresh(user)
+
+    token = create_token(user.id, user.email, membership.family_id, membership.role.value)
+    return AuthResponse(token=token, user=_user_dict(user))
