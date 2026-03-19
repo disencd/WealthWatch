@@ -22,7 +22,7 @@ lint-and-test:
     JWT_SECRET: ci-test-secret
   before_script:
     - pip install uv
-    - uv pip install --system -r requirements-dev.txt
+    - uv pip install --system ".[dev]"
   script:
     - ruff format --check app/ tests/
     - ruff check app/ tests/
