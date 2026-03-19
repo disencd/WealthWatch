@@ -207,17 +207,6 @@
             <option value="other">Other</option>
           </select>
         </div>
-        <!-- Account -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Account</label>
-          <select x-model.number="form.account_id" required
-                  class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm">
-            <option value="">Select account...</option>
-            <template x-for="acc in investmentAccounts" :key="acc.id">
-              <option :value="acc.id" x-text="acc.institution_name + ' — ' + acc.account_name"></option>
-            </template>
-          </select>
-        </div>
         <!-- Quantity & Cost Basis -->
         <div class="grid grid-cols-2 gap-4">
           <div>
@@ -315,7 +304,6 @@ function investmentsPage() {
 
   return {
     holdings: [],
-    investmentAccounts: [],
     portfolio: {
       total_value: 0,
       total_cost: 0,
@@ -332,7 +320,6 @@ function investmentsPage() {
       symbol: '',
       name: '',
       investment_type: '',
-      account_id: '',
       quantity: 0,
       cost_basis: 0,
       current_price: 0,
@@ -353,14 +340,12 @@ function investmentsPage() {
     async load() {
       this.loading = true;
       try {
-        const [portfolioData, holdingsData, accountsData] = await Promise.all([
+        const [portfolioData, holdingsData] = await Promise.all([
           api('GET', '/investments/portfolio'),
           api('GET', '/investments'),
-          api('GET', '/accounts?type=investment'),
         ]);
         this.portfolio = portfolioData || this.portfolio;
         this.holdings = holdingsData || [];
-        this.investmentAccounts = accountsData || [];
       } catch (e) {
         console.error('Failed to load investments:', e);
       } finally {
@@ -374,7 +359,6 @@ function investmentsPage() {
         symbol: '',
         name: '',
         investment_type: '',
-        account_id: '',
         quantity: 0,
         cost_basis: 0,
         current_price: 0,
@@ -388,11 +372,6 @@ function investmentsPage() {
       try {
         if (!this.form.investment_type) {
           this.formError = 'Please select an investment type.';
-          this.saving = false;
-          return;
-        }
-        if (!this.form.account_id) {
-          this.formError = 'Please select an account.';
           this.saving = false;
           return;
         }

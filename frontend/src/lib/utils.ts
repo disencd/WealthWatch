@@ -11,13 +11,4 @@ export function fmtDate(d: string | null | undefined): string {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export function typeLabel(t: string): string {
-  const m: Record<string, string> = {
-    checking: 'Checking', savings: 'Savings', credit_card: 'Credit Card',
-    investment: 'Investment', loan: 'Loan', mortgage: 'Mortgage',
-    real_estate: 'Real Estate', other: 'Other'
-  };
-  return m[t] || t;
-}
-
 export const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];

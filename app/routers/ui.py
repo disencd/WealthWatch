@@ -32,8 +32,6 @@ async def register(request: Request):
 _PAGES = {
     "/": "dashboard.html",
     "/dashboard": "dashboard.html",
-    "/networth": "networth.html",
-    "/accounts": "accounts.html",
     "/investments": "investments.html",
     "/transactions": "transactions.html",
     "/budgets": "budgets.html",

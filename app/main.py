@@ -13,7 +13,6 @@ from app.config import get_settings
 from app.database import dispose_engine, engine, get_db, init_db
 from app.models import User
 from app.routers import (
-    account,
     auth,
     budget,
     family,
@@ -64,7 +63,6 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(family.router)
 app.include_router(budget.router)
-app.include_router(account.router)
 app.include_router(investment.router)
 app.include_router(recurring.router)
 app.include_router(rules.router)

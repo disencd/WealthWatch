@@ -52,7 +52,6 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 async def init_db(max_retries: int = 10) -> None:
     from app.models import (  # noqa: F401
-        Account,
         AutoCategoryRule,
         Budget,
         BudgetExpense,
@@ -60,7 +59,6 @@ async def init_db(max_retries: int = 10) -> None:
         Family,
         FamilyMembership,
         InvestmentHolding,
-        NetWorthSnapshot,
         RecurringTransaction,
         SubCategory,
         User,

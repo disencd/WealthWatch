@@ -15,7 +15,7 @@
   let portfolio: Record<string, unknown> = $state({});
   let holdings: Holding[] = $state([]);
   let showAdd = $state(false);
-  let form = $state({ account_id: 0, symbol: '', investment_type: 'stock', name: '', quantity: 0, cost_basis: 0, current_price: 0 });
+  let form = $state({ symbol: '', investment_type: 'stock', name: '', quantity: 0, cost_basis: 0, current_price: 0 });
 
   onMount(() => { loadData(); });
 
@@ -32,7 +32,7 @@
     e.preventDefault();
     try {
       await api('/investments', { method: 'POST', body: JSON.stringify({
-        ...form, account_id: Number(form.account_id), quantity: Number(form.quantity),
+        ...form, quantity: Number(form.quantity),
         cost_basis: Number(form.cost_basis), current_price: Number(form.current_price)
       })});
       showAdd = false;
@@ -75,7 +75,7 @@
 
 <div class="flex items-center justify-between mb-4">
   <h3 class="font-semibold">Holdings</h3>
-  <button onclick={() => { form = { account_id: 0, symbol: '', investment_type: 'stock', name: '', quantity: 0, cost_basis: 0, current_price: 0 }; showAdd = true; }}
+  <button onclick={() => { form = { symbol: '', investment_type: 'stock', name: '', quantity: 0, cost_basis: 0, current_price: 0 }; showAdd = true; }}
     class="bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 text-sm font-medium flex items-center gap-2">
     <Plus size={16} /> Add Holding
   </button>
@@ -118,7 +118,6 @@
 
 <Modal title="Add Holding" open={showAdd} onClose={() => showAdd = false}>
   <form onsubmit={addHolding} class="space-y-4">
-    <div><label class="block text-sm font-medium mb-1">Account ID</label><input bind:value={form.account_id} type="number" required class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="Investment account ID" /></div>
     <div class="grid grid-cols-2 gap-3">
       <div><label class="block text-sm font-medium mb-1">Symbol</label><input bind:value={form.symbol} required class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="AAPL" /></div>
       <div><label class="block text-sm font-medium mb-1">Type</label>

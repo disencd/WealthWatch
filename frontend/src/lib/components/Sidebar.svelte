@@ -2,7 +2,7 @@
   import { page } from '$app/stores';
   import { logout, currentUser } from '$lib/stores/auth';
   import {
-    LayoutDashboard, Coins, Landmark, PieChart, Receipt, PiggyBank,
+    LayoutDashboard, PieChart, Receipt, PiggyBank,
     RefreshCw, Wand2, BarChart3, Shuffle,
     Heart, LogOut
   } from 'lucide-svelte';
@@ -12,13 +12,11 @@
       label: 'Overview',
       items: [
         { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { href: '/networth', icon: Coins, label: 'Net Worth' },
       ]
     },
     {
       label: 'Finance',
       items: [
-        { href: '/accounts', icon: Landmark, label: 'Accounts' },
         { href: '/investments', icon: PieChart, label: 'Investments' },
         { href: '/transactions', icon: Receipt, label: 'Transactions' },
         { href: '/budgets', icon: PiggyBank, label: 'Budgets' },

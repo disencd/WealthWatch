@@ -11,7 +11,6 @@ router = APIRouter(prefix="/api/v1/investments", tags=["investments"])
 
 
 class CreateHoldingRequest(BaseModel):
-    account_id: int
     symbol: str
     name: str
     investment_type: str
@@ -29,7 +28,6 @@ class UpdateHoldingRequest(BaseModel):
 def _holding_dict(h: InvestmentHolding) -> dict:
     return {
         "id": h.id,
-        "account_id": h.account_id,
         "family_id": h.family_id,
         "symbol": h.symbol,
         "name": h.name,
@@ -77,7 +75,6 @@ async def create_holding(
     gain_loss_pct = (gain_loss / total_cost * 100) if total_cost else 0
 
     h = InvestmentHolding(
-        account_id=req.account_id,
         family_id=current_user.family_id,
         symbol=req.symbol,
         name=req.name,

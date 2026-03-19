@@ -7,24 +7,9 @@ from tests.conftest import auth_header, register_user
 # ── Helpers ───────────────────────────────────────────────────────
 
 
-async def _create_account(client, headers: dict, **overrides) -> dict:
-    """Create an investment account and return the response JSON."""
-    payload = {
-        "institution_name": "Fidelity",
-        "account_name": "Brokerage",
-        "account_type": "investment",
-        "balance": 10000,
-    }
-    payload.update(overrides)
-    resp = await client.post("/api/v1/accounts", json=payload, headers=headers)
-    assert resp.status_code == 201, resp.text
-    return resp.json()
-
-
-async def _create_holding(client, headers: dict, account_id: int, **overrides) -> dict:
+async def _create_holding(client, headers: dict, **overrides) -> dict:
     """Create an investment holding and return the response JSON."""
     payload = {
-        "account_id": account_id,
         "symbol": "AAPL",
         "name": "Apple Inc",
         "investment_type": "stock",
@@ -47,13 +32,9 @@ async def test_create_holding(client):
     data = await register_user(client)
     h = auth_header(data["access_token"])
 
-    acc = await _create_account(client, h)
-    acc_id = acc["id"]
-
     resp = await client.post(
         "/api/v1/investments",
         json={
-            "account_id": acc_id,
             "symbol": "AAPL",
             "name": "Apple Inc",
             "investment_type": "stock",
@@ -77,7 +58,6 @@ async def test_create_holding(client):
     assert body["name"] == "Apple Inc"
     assert body["investment_type"] == "stock"
     assert body["quantity"] == 10
-    assert body["account_id"] == acc_id
     assert "id" in body
 
 
@@ -86,11 +66,9 @@ async def test_list_holdings(client):
     """GET /investments returns all family holdings sorted by symbol."""
     data = await register_user(client)
     h = auth_header(data["access_token"])
-    acc = await _create_account(client, h)
-    acc_id = acc["id"]
 
-    await _create_holding(client, h, acc_id, symbol="MSFT", name="Microsoft")
-    await _create_holding(client, h, acc_id, symbol="AAPL", name="Apple Inc")
+    await _create_holding(client, h, symbol="MSFT", name="Microsoft")
+    await _create_holding(client, h, symbol="AAPL", name="Apple Inc")
 
     resp = await client.get("/api/v1/investments", headers=h)
     assert resp.status_code == 200
@@ -123,14 +101,11 @@ async def test_portfolio_summary_with_holdings(client):
     """Portfolio summary aggregates across multiple holdings and groups by type."""
     data = await register_user(client)
     h = auth_header(data["access_token"])
-    acc = await _create_account(client, h)
-    acc_id = acc["id"]
 
     # Stock: 10 shares @ cost 150, price 175 -> value 1750, cost 1500
     await _create_holding(
         client,
         h,
-        acc_id,
         symbol="AAPL",
         name="Apple Inc",
         investment_type="stock",
@@ -142,7 +117,6 @@ async def test_portfolio_summary_with_holdings(client):
     await _create_holding(
         client,
         h,
-        acc_id,
         symbol="VOO",
         name="Vanguard S&P 500",
         investment_type="etf",
@@ -169,11 +143,9 @@ async def test_update_holding_recalculates(client):
     """PUT recalculates current_value, gain_loss, and gain_loss_percent."""
     data = await register_user(client)
     h = auth_header(data["access_token"])
-    acc = await _create_account(client, h)
     holding = await _create_holding(
         client,
         h,
-        acc["id"],
         quantity=10,
         cost_basis=150.0,
         current_price=175.0,
@@ -204,11 +176,9 @@ async def test_update_holding_cost_basis(client):
     """Updating only cost_basis recalculates derived fields correctly."""
     data = await register_user(client)
     h = auth_header(data["access_token"])
-    acc = await _create_account(client, h)
     holding = await _create_holding(
         client,
         h,
-        acc["id"],
         quantity=10,
         cost_basis=100.0,
         current_price=100.0,
@@ -233,8 +203,7 @@ async def test_delete_holding(client):
     """DELETE returns 204 and the holding disappears from the list."""
     data = await register_user(client)
     h = auth_header(data["access_token"])
-    acc = await _create_account(client, h)
-    holding = await _create_holding(client, h, acc["id"])
+    holding = await _create_holding(client, h)
 
     resp = await client.delete(f"/api/v1/investments/{holding['id']}", headers=h)
     assert resp.status_code == 204
@@ -289,8 +258,6 @@ async def test_create_multiple_types(client):
     """Holdings of different investment_type values are stored correctly."""
     data = await register_user(client)
     h = auth_header(data["access_token"])
-    acc = await _create_account(client, h)
-    acc_id = acc["id"]
 
     types_and_symbols = [
         ("stock", "AAPL"),
@@ -303,7 +270,6 @@ async def test_create_multiple_types(client):
         resp = await client.post(
             "/api/v1/investments",
             json={
-                "account_id": acc_id,
                 "symbol": symbol,
                 "name": f"{symbol} Holding",
                 "investment_type": inv_type,
@@ -323,8 +289,7 @@ async def test_holdings_isolated_between_users(client):
     # User A
     data_a = await register_user(client, email="alice@example.com", first_name="Alice")
     h_a = auth_header(data_a["access_token"])
-    acc_a = await _create_account(client, h_a, account_name="Alice Brokerage")
-    await _create_holding(client, h_a, acc_a["id"], symbol="AAPL")
+    await _create_holding(client, h_a, symbol="AAPL")
 
     # User B
     data_b = await register_user(client, email="bob@example.com", first_name="Bob")

@@ -30,43 +30,7 @@
         </div>
 
         <!-- Stat Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
-            <!-- Net Worth -->
-            <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Net Worth</p>
-                        <p class="text-2xl font-bold mt-1 text-gray-900" x-text="money(nw.net_worth)"></p>
-                    </div>
-                    <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-coins text-indigo-600"></i>
-                    </div>
-                </div>
-            </div>
-            <!-- Total Assets -->
-            <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Total Assets</p>
-                        <p class="text-2xl font-bold mt-1 text-green-600" x-text="money(nw.total_assets)"></p>
-                    </div>
-                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-arrow-trend-up text-green-600"></i>
-                    </div>
-                </div>
-            </div>
-            <!-- Total Liabilities -->
-            <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Total Liabilities</p>
-                        <p class="text-2xl font-bold mt-1 text-red-600" x-text="money(nw.total_liabilities)"></p>
-                    </div>
-                    <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-arrow-trend-down text-red-600"></i>
-                    </div>
-                </div>
-            </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
             <!-- Savings Rate -->
             <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5">
                 <div class="flex items-center justify-between">
@@ -82,6 +46,30 @@
                     <span>Income: <span class="text-gray-600" x-text="money(savings.total_income)"></span></span>
                     <span class="mx-2">|</span>
                     <span>Spent: <span class="text-gray-600" x-text="money(savings.total_expenses)"></span></span>
+                </div>
+            </div>
+            <!-- Total Income -->
+            <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Income This Month</p>
+                        <p class="text-2xl font-bold mt-1 text-green-600" x-text="money(savings.total_income)"></p>
+                    </div>
+                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-arrow-trend-up text-green-600"></i>
+                    </div>
+                </div>
+            </div>
+            <!-- Total Expenses -->
+            <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Expenses This Month</p>
+                        <p class="text-2xl font-bold mt-1 text-red-600" x-text="money(savings.total_expenses)"></p>
+                    </div>
+                    <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-arrow-trend-down text-red-600"></i>
+                    </div>
                 </div>
             </div>
         </div>
@@ -192,7 +180,6 @@ function dashboardPage() {
 
     return {
         loading: true,
-        nw: {},
         savings: {},
         trends: [],
         upcoming: [],
@@ -207,15 +194,13 @@ function dashboardPage() {
                 const year = now.getFullYear();
                 const month = now.getMonth() + 1;
 
-                const [nw, savings, trends, upcoming, tx] = await Promise.all([
-                    api('/networth/summary'),
+                const [savings, trends, upcoming, tx] = await Promise.all([
                     api('/reports/savings-rate?year=' + year + '&month=' + month),
                     api('/reports/spending-trends?months=6'),
                     api('/recurring/upcoming'),
                     api('/budget/expenses')
                 ]);
 
-                this.nw = nw || {};
                 this.savings = savings || {};
                 this.trends = trends || [];
                 this.upcoming = (upcoming || []).slice(0, 5);

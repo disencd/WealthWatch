@@ -31,23 +31,6 @@ class BudgetPeriod(str, enum.Enum):
     yearly = "yearly"
 
 
-class AccountType(str, enum.Enum):
-    checking = "checking"
-    savings = "savings"
-    credit_card = "credit_card"
-    investment = "investment"
-    loan = "loan"
-    mortgage = "mortgage"
-    real_estate = "real_estate"
-    other = "other"
-
-
-class AccountOwnership(str, enum.Enum):
-    yours = "yours"
-    mine = "mine"
-    ours = "ours"
-
-
 class InvestmentType(str, enum.Enum):
     stock = "stock"
     bond = "bond"
@@ -193,32 +176,10 @@ class BudgetExpense(TimestampMixin, Base):
     sub_category: Mapped[SubCategory] = relationship()
 
 
-class Account(TimestampMixin, Base):
-    __tablename__ = "accounts"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    family_id: Mapped[int] = mapped_column(Integer, ForeignKey("families.id"), nullable=False, index=True)
-    created_by_user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    institution_name: Mapped[str] = mapped_column(String, nullable=False)
-    account_name: Mapped[str] = mapped_column(String, nullable=False)
-    account_type: Mapped[AccountType] = mapped_column(Enum(AccountType), nullable=False)
-    ownership: Mapped[AccountOwnership] = mapped_column(
-        Enum(AccountOwnership), nullable=False, default=AccountOwnership.ours
-    )
-    balance: Mapped[float] = mapped_column(Float, nullable=False, default=0)
-    currency: Mapped[str] = mapped_column(String, nullable=False, default="USD")
-    is_asset: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime)
-
-    family: Mapped[Family] = relationship()
-
-
 class InvestmentHolding(TimestampMixin, Base):
     __tablename__ = "investment_holdings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    account_id: Mapped[int] = mapped_column(Integer, ForeignKey("accounts.id"), nullable=False, index=True)
     family_id: Mapped[int] = mapped_column(Integer, ForeignKey("families.id"), nullable=False, index=True)
     symbol: Mapped[str] = mapped_column(String, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -230,20 +191,6 @@ class InvestmentHolding(TimestampMixin, Base):
     gain_loss: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     gain_loss_percent: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     last_updated_at: Mapped[datetime | None] = mapped_column(DateTime)
-
-    account: Mapped[Account] = relationship()
-    family: Mapped[Family] = relationship()
-
-
-class NetWorthSnapshot(TimestampMixin, Base):
-    __tablename__ = "net_worth_snapshots"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    family_id: Mapped[int] = mapped_column(Integer, ForeignKey("families.id"), nullable=False, index=True)
-    date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
-    total_assets: Mapped[float] = mapped_column(Float, nullable=False, default=0)
-    total_liabilities: Mapped[float] = mapped_column(Float, nullable=False, default=0)
-    net_worth: Mapped[float] = mapped_column(Float, nullable=False, default=0)
 
     family: Mapped[Family] = relationship()
 
