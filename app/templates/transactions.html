@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+{% block title %}Transactions{% endblock %}
+{% block content %}
+<div x-data="transactionsPage()" x-init="load()" class="space-y-6">
+
+  <!-- Header Row -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Transactions</h1>
+      <p class="text-sm text-gray-500 mt-1">Track and manage your expenses</p>
+    </div>
+    <button @click="showAddModal = true"
+            class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-lg hover:bg-indigo-700 text-sm font-medium shadow-sm transition">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+      Add Transaction
+    </button>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+    <div class="flex flex-col sm:flex-row sm:items-end gap-3">
+      <div class="flex-1 min-w-[160px]">
+        <label class="block text-xs font-medium text-gray-500 mb-1">Category</label>
+        <select x-model="filterCategoryId"
+                class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+          <option value="">All Categories</option>
+          <template x-for="c in categories" :key="c.id">
+            <option :value="c.id" x-text="c.name"></option>
+          </template>
+        </select>
+      </div>
+      <div class="min-w-[160px]">
+        <label class="block text-xs font-medium text-gray-500 mb-1">Month</label>
+        <input type="month" x-model="filterMonth"
+               class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+      </div>
+      <button @click="fetchTransactions()"
+              class="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2 rounded-lg hover:bg-black text-sm font-medium transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+        Filter
+      </button>
+    </div>
+  </div>
+
+  <!-- Transactions Table -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <!-- Loading state -->
+    <div x-show="loading" class="p-12 text-center text-gray-400">
+      <svg class="animate-spin h-8 w-8 mx-auto mb-3 text-indigo-500" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+      </svg>
+      Loading transactions...
+    </div>
+
+    <!-- Empty state -->
+    <div x-show="!loading && transactions.length === 0" class="p-12 text-center">
+      <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/></svg>
+      <p class="text-gray-500 font-medium">No transactions found</p>
+      <p class="text-gray-400 text-sm mt-1">Add a transaction or adjust your filters</p>
+    </div>
+
+    <!-- Table -->
+    <div x-show="!loading && transactions.length > 0" class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Title</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Merchant</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
+            <th class="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Amount</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <template x-for="tx in transactions" :key="tx.id">
+            <tr class="hover:bg-gray-50 transition-colors">
+              <td class="px-5 py-3.5 text-gray-600 whitespace-nowrap" x-text="fmtDate(tx.date)"></td>
+              <td class="px-5 py-3.5 font-medium text-gray-900" x-text="tx.title"></td>
+              <td class="px-5 py-3.5 text-gray-600" x-text="tx.merchant || '\u2014'"></td>
+              <td class="px-5 py-3.5">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700"
+                      x-text="tx.category ? tx.category.name : 'Uncategorized'"></span>
+              </td>
+              <td class="px-5 py-3.5 text-right font-semibold text-red-600 whitespace-nowrap"
+                  x-text="'-' + money(tx.amount)"></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CSV Import Section (Collapsible) -->
+  <div x-data="{ open: false }" class="bg-white rounded-xl shadow-sm border border-gray-200">
+    <button @click="open = !open"
+            class="w-full flex items-center justify-between px-5 py-4 text-left">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center">
+          <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-gray-900">CSV Import</h3>
+          <p class="text-xs text-gray-500">Import categories or monthly transactions from CSV files</p>
+        </div>
+      </div>
+      <svg :class="open && 'rotate-180'" class="w-5 h-5 text-gray-400 transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+    </button>
+
+    <div x-show="open" x-collapse class="border-t border-gray-200">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 p-5">
+
+        <!-- Import Categories CSV -->
+        <div class="border border-dashed border-gray-300 rounded-lg p-5 bg-gray-50/50">
+          <div class="flex items-start justify-between mb-3">
+            <div>
+              <h4 class="text-sm font-semibold text-gray-900">Import Categories CSV</h4>
+              <p class="text-xs text-gray-500 mt-0.5">Upload the FinancialDocs Info CSV to create categories and sub-categories.</p>
+            </div>
+            <svg class="w-6 h-6 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+          </div>
+          <input type="file" accept=".csv,text/csv" @change="catFile = $event.target.files[0]"
+                 class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+          <button @click="uploadCategoriesCsv()"
+                  :disabled="!catFile || uploading"
+                  class="mt-3 w-full bg-gray-900 text-white px-4 py-2.5 rounded-lg hover:bg-black text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition">
+            <span x-show="!uploading">Import Categories CSV</span>
+            <span x-show="uploading">Uploading...</span>
+          </button>
+        </div>
+
+        <!-- Import Monthly Transactions -->
+        <div class="border border-dashed border-gray-300 rounded-lg p-5 bg-gray-50/50">
+          <div class="flex items-start justify-between mb-3">
+            <div>
+              <h4 class="text-sm font-semibold text-gray-900">Import Monthly Transactions</h4>
+              <p class="text-xs text-gray-500 mt-0.5">Upload one or more monthly CSVs to create transactions.</p>
+            </div>
+            <svg class="w-6 h-6 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+          </div>
+          <input type="file" accept=".csv,text/csv" multiple @change="monthlyFiles = $event.target.files"
+                 class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white file:mr-3 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+          <button @click="uploadMonthlyCsv()"
+                  :disabled="!monthlyFiles || monthlyFiles.length === 0 || uploading"
+                  class="mt-3 w-full bg-gray-900 text-white px-4 py-2.5 rounded-lg hover:bg-black text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition">
+            <span x-show="!uploading">Import Monthly CSVs</span>
+            <span x-show="uploading">Uploading...</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Import result message -->
+      <div x-show="importMsg" class="px-5 pb-5">
+        <div class="rounded-lg p-3 text-sm"
+             :class="importError ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'"
+             x-text="importMsg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Transaction Modal -->
+  <div x-show="showAddModal" x-cloak
+       class="fixed inset-0 z-50 flex items-center justify-center p-4"
+       @keydown.escape.window="showAddModal = false">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/40" @click="showAddModal = false"></div>
+    <!-- Panel -->
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+         @click.stop>
+      <!-- Header -->
+      <div class="flex items-center justify-between p-5 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Add Transaction</h3>
+        <button @click="showAddModal = false" class="text-gray-400 hover:text-gray-600 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <!-- Body -->
+      <form @submit.prevent="createTransaction()" class="p-5 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Title <span class="text-red-500">*</span></label>
+          <input type="text" x-model="form.title" required
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                 placeholder="e.g. Grocery shopping">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Amount <span class="text-red-500">*</span></label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+              <input type="number" step="0.01" min="0" x-model="form.amount" required
+                     class="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                     placeholder="0.00">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date <span class="text-red-500">*</span></label>
+            <input type="date" x-model="form.date" required
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Merchant</label>
+          <input type="text" x-model="form.merchant"
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                 placeholder="e.g. Whole Foods">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Category <span class="text-red-500">*</span></label>
+            <select x-model="form.category_id" required
+                    @change="form.sub_category_id = ''"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+              <option value="" disabled>Select category</option>
+              <template x-for="c in categories" :key="c.id">
+                <option :value="c.id" x-text="c.name"></option>
+              </template>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Sub-Category <span class="text-red-500">*</span></label>
+            <select x-model="form.sub_category_id" required
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    :disabled="!form.category_id">
+              <option value="" disabled>Select sub-category</option>
+              <template x-for="s in filteredSubcategories" :key="s.id">
+                <option :value="s.id" x-text="s.name"></option>
+              </template>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <textarea x-model="form.notes" rows="2"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                    placeholder="Optional notes..."></textarea>
+        </div>
+
+        <!-- Error -->
+        <div x-show="formError" class="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm p-3" x-text="formError"></div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button type="button" @click="showAddModal = false"
+                  class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+            Cancel
+          </button>
+          <button type="submit" :disabled="saving"
+                  class="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition">
+            <span x-show="!saving">Save Transaction</span>
+            <span x-show="saving">Saving...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function transactionsPage() {
+  const token = localStorage.getItem('token');
+  const headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'};
+  const api = async (method, path, body) => {
+    const opts = {method, headers};
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch('/api/v1' + path, opts);
+    if (res.status === 401) { window.location.href = '/login'; return null; }
+    if (res.status === 204) return null;
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail || 'Failed'); }
+    return res.json();
+  };
+  const money = (n) => '$' + (Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+
+  return {
+    /* state */
+    loading: false,
+    saving: false,
+    uploading: false,
+    showAddModal: false,
+    transactions: [],
+    categories: [],
+    subcategories: [],
+    filterCategoryId: '',
+    filterMonth: '',
+    form: { title:'', amount:'', date:'', merchant:'', notes:'', category_id:'', sub_category_id:'' },
+    formError: '',
+    catFile: null,
+    monthlyFiles: null,
+    importMsg: '',
+    importError: false,
+
+    /* computed */
+    get filteredSubcategories() {
+      if (!this.form.category_id) return [];
+      const cid = Number(this.form.category_id);
+      return this.subcategories.filter(s => s.category_id === cid);
+    },
+
+    /* helpers */
+    money,
+    fmtDate,
+
+    /* loaders */
+    async load() {
+      const now = new Date();
+      this.filterMonth = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+      await Promise.all([
+        this.fetchCategories(),
+        this.fetchSubcategories(),
+        this.fetchTransactions(),
+      ]);
+    },
+
+    async fetchCategories() {
+      try { this.categories = await api('GET', '/budget/categories') || []; } catch {}
+    },
+
+    async fetchSubcategories() {
+      try { this.subcategories = await api('GET', '/budget/subcategories') || []; } catch {}
+    },
+
+    async fetchTransactions() {
+      this.loading = true;
+      try {
+        let path = '/budget/expenses';
+        const params = [];
+        if (this.filterCategoryId) params.push('category_id=' + this.filterCategoryId);
+        if (this.filterMonth) {
+          const [y, m] = this.filterMonth.split('-');
+          params.push('year=' + Number(y));
+          params.push('month=' + Number(m));
+        }
+        if (params.length) path += '?' + params.join('&');
+        this.transactions = await api('GET', path) || [];
+      } catch { this.transactions = []; }
+      this.loading = false;
+    },
+
+    /* create */
+    async createTransaction() {
+      this.formError = '';
+      this.saving = true;
+      try {
+        const body = {
+          title: this.form.title,
+          amount: Number(this.form.amount),
+          date: this.form.date,
+          merchant: this.form.merchant,
+          notes: this.form.notes,
+          category_id: Number(this.form.category_id),
+          sub_category_id: Number(this.form.sub_category_id),
+        };
+        await api('POST', '/budget/expenses', body);
+        this.showAddModal = false;
+        this.form = { title:'', amount:'', date:'', merchant:'', notes:'', category_id:'', sub_category_id:'' };
+        await this.fetchTransactions();
+      } catch (err) {
+        this.formError = err.message || 'Failed to create transaction';
+      }
+      this.saving = false;
+    },
+
+    /* CSV uploads */
+    async uploadCategoriesCsv() {
+      if (!this.catFile) return;
+      this.uploading = true;
+      this.importMsg = '';
+      this.importError = false;
+      try {
+        const fd = new FormData();
+        fd.append('file', this.catFile);
+        const res = await fetch('/api/v1/budget/import/categories-csv', {
+          method: 'POST',
+          headers: {'Authorization': 'Bearer ' + token},
+          body: fd,
+        });
+        if (res.status === 401) { window.location.href = '/login'; return; }
+        if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail || 'Upload failed'); }
+        const data = await res.json();
+        this.importMsg = 'Imported ' + data.created_categories + ' categories, ' + data.created_sub_categories + ' sub-categories (' + data.skipped + ' skipped).';
+        await Promise.all([this.fetchCategories(), this.fetchSubcategories()]);
+      } catch (err) {
+        this.importError = true;
+        this.importMsg = err.message || 'Upload failed';
+      }
+      this.uploading = false;
+    },
+
+    async uploadMonthlyCsv() {
+      if (!this.monthlyFiles || this.monthlyFiles.length === 0) return;
+      this.uploading = true;
+      this.importMsg = '';
+      this.importError = false;
+      try {
+        const fd = new FormData();
+        for (const f of this.monthlyFiles) { fd.append('files', f); }
+        const res = await fetch('/api/v1/budget/import/monthly-csv', {
+          method: 'POST',
+          headers: {'Authorization': 'Bearer ' + token},
+          body: fd,
+        });
+        if (res.status === 401) { window.location.href = '/login'; return; }
+        if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail || 'Upload failed'); }
+        const data = await res.json();
+        this.importMsg = 'Imported ' + data.created_budget_expenses + ' transactions, ' + data.created_categories + ' categories, ' + data.created_sub_categories + ' sub-categories (' + data.skipped + ' skipped).';
+        await Promise.all([this.fetchCategories(), this.fetchSubcategories(), this.fetchTransactions()]);
+      } catch (err) {
+        this.importError = true;
+        this.importMsg = err.message || 'Upload failed';
+      }
+      this.uploading = false;
+    },
+  };
+}
+</script>
+{% endblock %}

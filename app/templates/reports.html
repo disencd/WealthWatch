@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Spending Reports - WealthWatch{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div x-data="reportsPage()" x-init="load()" x-cloak class="max-w-5xl mx-auto px-4 py-8">
+
+  <!-- Header -->
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Spending Reports</h1>
+    <p class="text-sm text-gray-500 mt-1">Monthly spending trends and top merchants</p>
+  </div>
+
+  <!-- Loading -->
+  <template x-if="loading">
+    <div class="text-center py-16">
+      <i class="fas fa-spinner fa-spin text-2xl text-brand-500"></i>
+      <p class="text-gray-500 mt-3 text-sm">Loading reports...</p>
+    </div>
+  </template>
+
+  <!-- Error -->
+  <template x-if="error">
+    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6" x-text="error"></div>
+  </template>
+
+  <template x-if="!loading">
+    <div class="space-y-6">
+
+      <!-- Monthly Spending Chart -->
+      <div class="bg-white rounded-lg shadow-sm border p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-1">Monthly Spending</h2>
+        <p class="text-sm text-gray-500 mb-4">Last 12 months of spending activity</p>
+        <template x-if="trends.length === 0">
+          <div class="text-center py-12 text-gray-400">
+            <i class="fas fa-chart-bar text-4xl mb-3"></i>
+            <p class="text-sm">No spending data available yet</p>
+          </div>
+        </template>
+        <template x-if="trends.length > 0">
+          <div style="height: 320px; position: relative;">
+            <canvas id="spendingChart"></canvas>
+          </div>
+        </template>
+      </div>
+
+      <!-- Top Merchants -->
+      <div class="bg-white rounded-lg shadow-sm border p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-1">Top Merchants</h2>
+        <p class="text-sm text-gray-500 mb-4">Where you spend the most (all time, top 10)</p>
+        <template x-if="merchants.length === 0">
+          <div class="text-center py-12 text-gray-400">
+            <i class="fas fa-store text-4xl mb-3"></i>
+            <p class="text-sm">No merchant data available yet</p>
+          </div>
+        </template>
+        <template x-if="merchants.length > 0">
+          <div class="space-y-3">
+            <template x-for="(m, idx) in merchants" :key="idx">
+              <div class="flex items-center gap-4">
+                <!-- Rank -->
+                <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
+                     :class="idx < 3 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'"
+                     x-text="idx + 1"></div>
+                <!-- Info -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between">
+                    <h3 class="font-medium text-gray-900 truncate" x-text="m.merchant"></h3>
+                    <span class="text-sm font-bold text-gray-900 flex-shrink-0 ml-3" x-text="money(m.total_spent)"></span>
+                  </div>
+                  <div class="flex items-center justify-between mt-1">
+                    <div class="flex-1 mr-4">
+                      <div class="w-full bg-gray-100 rounded-full h-2">
+                        <div class="h-2 rounded-full transition-all"
+                             :class="idx < 3 ? 'bg-brand-500' : 'bg-gray-300'"
+                             :style="'width:' + (m.total_spent / maxMerchantSpend * 100) + '%'"></div>
+                      </div>
+                    </div>
+                    <span class="text-xs text-gray-500 flex-shrink-0" x-text="m.count + ' transactions'"></span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+
+    </div>
+  </template>
+
+</div>
+
+<script>
+function reportsPage() {
+  const token = localStorage.getItem('token');
+  const headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'};
+  const api = async (method, path, body) => {
+    const opts = {method, headers};
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch('/api/v1' + path, opts);
+    if (res.status === 401) { window.location.href = '/login'; return null; }
+    if (res.status === 204) return null;
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail || 'Failed'); }
+    return res.json();
+  };
+  const money = (n) => '$' + (Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+
+  let chartInstance = null;
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  return {
+    trends: [],
+    merchants: [],
+    loading: true,
+    error: '',
+    maxMerchantSpend: 1,
+
+    money, fmtDate,
+
+    async load() {
+      try {
+        const [trends, merchants] = await Promise.all([
+          api('GET', '/reports/spending-trends?months=12'),
+          api('GET', '/reports/spending-by-merchant?limit=10')
+        ]);
+        this.trends = trends || [];
+        this.merchants = merchants || [];
+        if (this.merchants.length > 0) {
+          this.maxMerchantSpend = Math.max(...this.merchants.map(m => m.total_spent));
+        }
+        this.$nextTick(() => { if (this.trends.length > 0) this.renderChart(); });
+      } catch (e) { this.error = e.message; }
+      finally { this.loading = false; }
+    },
+
+    renderChart() {
+      const canvas = document.getElementById('spendingChart');
+      if (!canvas) return;
+      if (chartInstance) chartInstance.destroy();
+
+      const labels = this.trends.map(t => monthNames[t.month - 1] + ' ' + t.year);
+      const data = this.trends.map(t => t.total_spent);
+
+      chartInstance = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Total Spending',
+            data,
+            backgroundColor: 'rgba(99, 102, 241, 0.7)',
+            borderColor: 'rgb(99, 102, 241)',
+            borderWidth: 1,
+            borderRadius: 6,
+            maxBarThickness: 48
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ' ' + money(ctx.parsed.y)
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: (v) => '$' + v.toLocaleString(),
+                font: { size: 11 }
+              },
+              grid: { color: 'rgba(0,0,0,0.04)' }
+            },
+            x: {
+              ticks: { font: { size: 11 } },
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+  };
+}
+</script>
+{% endblock %}

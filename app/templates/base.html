@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}WealthWatch{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81'},
+            sidebar: '#1e293b'
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
+  {% block head %}{% endblock %}
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 antialiased" x-data="app()" x-cloak>
+
+  <!-- Mobile overlay -->
+  <div x-show="sidebarOpen" x-transition.opacity class="fixed inset-0 z-30 bg-black/50 lg:hidden" @click="sidebarOpen=false"></div>
+
+  <!-- Sidebar -->
+  <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-sidebar transition-transform duration-200 lg:translate-x-0">
+    <div class="flex h-16 items-center gap-2 px-5 border-b border-slate-700/60">
+      <svg class="h-7 w-7 text-brand-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+      </svg>
+      <span class="text-lg font-bold text-white tracking-tight">WealthWatch</span>
+      <button @click="sidebarOpen=false" class="ml-auto text-slate-400 hover:text-white lg:hidden">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-5 sidebar-nav">
+      {% macro nav(href, label, icon_d) %}
+      <a href="{{ href }}" class="nav-link {% if request.url.path == href %}active{% endif %}">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="{{ icon_d }}"/></svg>
+        {{ label }}
+      </a>
+      {% endmacro %}
+
+      <div>
+        <p class="nav-section-title">Overview</p>
+        {{ nav('/dashboard', 'Dashboard', 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z') }}
+        {{ nav('/networth', 'Net Worth', 'M22 12h-4l-3 9L9 3l-3 9H2') }}
+      </div>
+      <div>
+        <p class="nav-section-title">Finance</p>
+        {{ nav('/accounts', 'Accounts', 'M2 5h20v14H2zM2 10h20') }}
+        {{ nav('/investments', 'Investments', 'M22 7l-8.5 8.5-5-5L2 17') }}
+        {{ nav('/transactions', 'Transactions', 'M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3') }}
+        {{ nav('/budgets', 'Budgets', 'M12 2a10 10 0 100 20 10 10 0 000-20zM12 6v6l4 2') }}
+      </div>
+      <div>
+        <p class="nav-section-title">Automation</p>
+        {{ nav('/recurring', 'Recurring Bills', 'M21 12a9 9 0 11-6.219-8.56M21 3v6h-6') }}
+        {{ nav('/rules', 'Auto Rules', 'M12 20h9M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4z') }}
+      </div>
+      <div>
+        <p class="nav-section-title">Reports</p>
+        {{ nav('/reports', 'Spending Trends', 'M18 20V10M12 20V4M6 20v-6') }}
+        {{ nav('/cashflow', 'Cash Flow', 'M2 20h20M5 20V8l5 4 4-8 6 8v8') }}
+      </div>
+      <div>
+        <p class="nav-section-title">Sharing</p>
+        {{ nav('/expenses', 'Split Expenses', 'M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M8.5 3a4 4 0 100 8 4 4 0 000-8zM20 8v6M23 11h-6') }}
+        {{ nav('/groups', 'Groups', 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 3a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75') }}
+        {{ nav('/balances', 'Balances', 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6') }}
+        {{ nav('/settlements', 'Settlements', 'M1 4h22v16H1zM1 10h22') }}
+      </div>
+      <div>
+        <p class="nav-section-title">More</p>
+        {{ nav('/family', 'Family / Partner', 'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 3a4 4 0 100 8 4 4 0 000-8z') }}
+      </div>
+    </nav>
+
+    <div class="border-t border-slate-700/60 p-3">
+      <button @click="logout()" class="nav-link w-full text-red-400 hover:!bg-red-500/10 hover:!text-red-300">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main wrapper -->
+  <div class="lg:pl-64 min-h-screen flex flex-col">
+    <header class="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-slate-200 bg-white/80 backdrop-blur px-4 sm:px-6">
+      <button @click="sidebarOpen=true" class="text-slate-500 hover:text-slate-700 lg:hidden">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <h1 class="text-lg font-semibold text-slate-800">{% block page_title %}{% endblock %}</h1>
+      <div class="flex-1"></div>
+      <div class="flex items-center gap-3" x-show="user">
+        <span class="hidden sm:inline text-sm text-slate-600">Welcome, <strong x-text="user?.first_name || 'User'" class="text-slate-800"></strong></span>
+        <div class="h-9 w-9 flex items-center justify-center rounded-full bg-brand-100 text-brand-700 font-semibold text-sm" x-text="(user?.first_name?.[0]||'U')+(user?.last_name?.[0]||'')"></div>
+      </div>
+    </header>
+    <main class="flex-1 p-4 sm:p-6 lg:p-8">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

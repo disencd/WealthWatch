@@ -7,12 +7,14 @@ RUN npm install
 COPY frontend/ ./
 RUN npm run build
 
-# Stage 2 – Install Python dependencies
+# Stage 2 – Install Python dependencies with uv
 FROM python:3.12-slim AS builder
 
-WORKDIR /install
-COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install/deps -r requirements.txt
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
 
 # Final stage
 FROM python:3.12-slim
@@ -26,8 +28,8 @@ RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuse
 
 WORKDIR /app
 
-# Copy installed packages
-COPY --from=builder /install/deps /usr/local
+# Copy virtual environment from builder
+COPY --from=builder /app/.venv /app/.venv
 
 # Copy application code
 COPY app/ ./app/
@@ -40,6 +42,7 @@ RUN mkdir -p /data && chown -R appuser:appuser /app /data
 
 USER appuser
 
+ENV PATH="/app/.venv/bin:$PATH"
 ENV SQLITE_DB_PATH=/data/wealthwatch.db
 EXPOSE 8080
 
