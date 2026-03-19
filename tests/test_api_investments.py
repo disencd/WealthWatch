@@ -45,7 +45,7 @@ async def _create_holding(client, headers: dict, account_id: int, **overrides) -
 async def test_create_holding(client):
     """Creating a holding auto-calculates value, gain/loss, and percent."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     acc = await _create_account(client, h)
     acc_id = acc["id"]
@@ -85,7 +85,7 @@ async def test_create_holding(client):
 async def test_list_holdings(client):
     """GET /investments returns all family holdings sorted by symbol."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
     acc = await _create_account(client, h)
     acc_id = acc["id"]
 
@@ -105,7 +105,7 @@ async def test_list_holdings(client):
 async def test_portfolio_summary_empty(client):
     """Portfolio summary with zero holdings returns zeroed-out totals."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     resp = await client.get("/api/v1/investments/portfolio", headers=h)
     assert resp.status_code == 200
@@ -122,7 +122,7 @@ async def test_portfolio_summary_empty(client):
 async def test_portfolio_summary_with_holdings(client):
     """Portfolio summary aggregates across multiple holdings and groups by type."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
     acc = await _create_account(client, h)
     acc_id = acc["id"]
 
@@ -168,7 +168,7 @@ async def test_portfolio_summary_with_holdings(client):
 async def test_update_holding_recalculates(client):
     """PUT recalculates current_value, gain_loss, and gain_loss_percent."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
     acc = await _create_account(client, h)
     holding = await _create_holding(
         client,
@@ -203,7 +203,7 @@ async def test_update_holding_recalculates(client):
 async def test_update_holding_cost_basis(client):
     """Updating only cost_basis recalculates derived fields correctly."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
     acc = await _create_account(client, h)
     holding = await _create_holding(
         client,
@@ -232,7 +232,7 @@ async def test_update_holding_cost_basis(client):
 async def test_delete_holding(client):
     """DELETE returns 204 and the holding disappears from the list."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
     acc = await _create_account(client, h)
     holding = await _create_holding(client, h, acc["id"])
 
@@ -249,7 +249,7 @@ async def test_delete_holding(client):
 async def test_update_holding_not_found(client):
     """PUT on a non-existent holding returns 404."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     resp = await client.put(
         "/api/v1/investments/99999",
@@ -263,7 +263,7 @@ async def test_update_holding_not_found(client):
 async def test_delete_holding_not_found(client):
     """DELETE on a non-existent holding returns 404."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     resp = await client.delete("/api/v1/investments/99999", headers=h)
     assert resp.status_code == 404
@@ -288,7 +288,7 @@ async def test_unauthenticated_access(client):
 async def test_create_multiple_types(client):
     """Holdings of different investment_type values are stored correctly."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
     acc = await _create_account(client, h)
     acc_id = acc["id"]
 
@@ -322,13 +322,13 @@ async def test_holdings_isolated_between_users(client):
     """Holdings created by one user are not visible to another."""
     # User A
     data_a = await register_user(client, email="alice@example.com", first_name="Alice")
-    h_a = auth_header(data_a["token"])
+    h_a = auth_header(data_a["access_token"])
     acc_a = await _create_account(client, h_a, account_name="Alice Brokerage")
     await _create_holding(client, h_a, acc_a["id"], symbol="AAPL")
 
     # User B
     data_b = await register_user(client, email="bob@example.com", first_name="Bob")
-    h_b = auth_header(data_b["token"])
+    h_b = auth_header(data_b["access_token"])
 
     # User B sees no holdings
     resp = await client.get("/api/v1/investments", headers=h_b)

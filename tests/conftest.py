@@ -64,7 +64,7 @@ async def db():
 
 
 async def register_user(client: AsyncClient, **kwargs) -> dict:
-    """Register a user and return the response JSON (token + user)."""
+    """Register a user and return the response JSON (access_token + user)."""
     defaults = {
         "first_name": "Test",
         "last_name": "User",

@@ -55,7 +55,7 @@ async def test_google_auth_new_user(mock_verify, mock_settings, client):
     resp = await client.post("/api/v1/auth/google", json={"credential": "valid-google-token"})
     assert resp.status_code == 200
     body = resp.json()
-    assert "token" in body
+    assert "access_token" in body
     assert body["user"]["email"] == "googleuser@gmail.com"
     assert body["user"]["first_name"] == "Google"
     assert body["user"]["last_name"] == "User"
@@ -78,7 +78,7 @@ async def test_google_auth_existing_user_by_email(mock_verify, mock_settings, cl
     resp = await client.post("/api/v1/auth/google", json={"credential": "valid-google-token"})
     assert resp.status_code == 200
     body = resp.json()
-    assert "token" in body
+    assert "access_token" in body
     # Should keep the original name from registration
     assert body["user"]["email"] == "googleuser@gmail.com"
     assert body["user"]["first_name"] == "Test"
@@ -130,7 +130,7 @@ async def test_google_auth_profile_accessible(mock_verify, mock_settings, client
     mock_verify.return_value = MOCK_GOOGLE_IDINFO
 
     resp = await client.post("/api/v1/auth/google", json={"credential": "valid-google-token"})
-    token = resp.json()["token"]
+    token = resp.json()["access_token"]
 
     profile_resp = await client.get("/api/v1/auth/profile", headers=auth_header(token))
     assert profile_resp.status_code == 200

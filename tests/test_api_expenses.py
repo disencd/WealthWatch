@@ -27,7 +27,7 @@ async def _create_expense(client, token, **overrides):
 async def test_create_expense_with_splits(client):
     """POST /expenses with splits returns 201 and persists splits."""
     data = await register_user(client)
-    token = data["token"]
+    token = data["access_token"]
     payer_id = data["user"]["id"]
 
     # Register a second user to include in splits
@@ -68,7 +68,7 @@ async def test_create_expense_with_splits(client):
 async def test_create_expense_without_splits(client):
     """POST /expenses with no splits returns 201 and empty splits list."""
     data = await register_user(client)
-    token = data["token"]
+    token = data["access_token"]
 
     resp = await _create_expense(
         client,
@@ -95,7 +95,7 @@ async def test_create_expense_without_splits(client):
 async def test_list_expenses(client):
     """GET /expenses returns only the current user's expenses, newest first."""
     data = await register_user(client)
-    token = data["token"]
+    token = data["access_token"]
 
     # Create two expenses with different dates
     await _create_expense(client, token, title="Old", amount=10.0, date="2025-01-01T00:00:00")
@@ -114,7 +114,7 @@ async def test_list_expenses(client):
 async def test_get_expense_by_id(client):
     """GET /expenses/{id} returns the correct expense."""
     data = await register_user(client)
-    token = data["token"]
+    token = data["access_token"]
 
     create_resp = await _create_expense(
         client,
@@ -141,7 +141,7 @@ async def test_get_expense_by_id(client):
 async def test_get_expense_not_found(client):
     """GET /expenses/{id} returns 404 for a non-existent expense."""
     data = await register_user(client)
-    token = data["token"]
+    token = data["access_token"]
 
     resp = await client.get(
         "/api/v1/expenses/99999",
@@ -169,7 +169,7 @@ async def test_unauthenticated_access(client):
 async def test_create_expense_optional_fields(client):
     """POST /expenses honours optional fields (currency, category, description)."""
     data = await register_user(client)
-    token = data["token"]
+    token = data["access_token"]
 
     resp = await _create_expense(
         client,

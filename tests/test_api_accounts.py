@@ -8,7 +8,7 @@ from tests.conftest import auth_header, register_user
 async def test_create_checking_account_is_asset(client):
     """Checking account should default is_asset=True."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     resp = await client.post(
         "/api/v1/accounts",
@@ -36,7 +36,7 @@ async def test_create_checking_account_is_asset(client):
 async def test_create_credit_card_forces_is_asset_false(client):
     """credit_card type should auto-set is_asset=False even if not specified."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     resp = await client.post(
         "/api/v1/accounts",
@@ -58,7 +58,7 @@ async def test_create_credit_card_forces_is_asset_false(client):
 async def test_create_loan_forces_is_asset_false(client):
     """loan type should auto-set is_asset=False even if caller sends is_asset=True."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     resp = await client.post(
         "/api/v1/accounts",
@@ -79,7 +79,7 @@ async def test_create_loan_forces_is_asset_false(client):
 async def test_create_account_with_ownership(client):
     """Verify custom ownership value is stored."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     resp = await client.post(
         "/api/v1/accounts",
@@ -103,7 +103,7 @@ async def test_create_account_with_ownership(client):
 async def test_list_accounts(client):
     """List returns all active accounts for the family."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     # create two accounts
     await client.post(
@@ -138,7 +138,7 @@ async def test_list_accounts(client):
 async def test_list_accounts_filter_by_type(client):
     """Filtering by type returns only matching accounts."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     await client.post(
         "/api/v1/accounts",
@@ -171,7 +171,7 @@ async def test_list_accounts_filter_by_type(client):
 async def test_list_accounts_filter_by_ownership(client):
     """Filtering by ownership returns only matching accounts."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     await client.post(
         "/api/v1/accounts",
@@ -209,7 +209,7 @@ async def test_list_accounts_filter_by_ownership(client):
 async def test_get_account_by_id(client):
     """GET /accounts/{id} returns the correct account."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     create_resp = await client.post(
         "/api/v1/accounts",
@@ -232,7 +232,7 @@ async def test_get_account_by_id(client):
 async def test_get_account_not_found(client):
     """GET /accounts/{id} returns 404 for non-existent ID."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     resp = await client.get("/api/v1/accounts/99999", headers=h)
     assert resp.status_code == 404
@@ -241,7 +241,7 @@ async def test_get_account_not_found(client):
 async def test_update_account_balance(client):
     """PUT /accounts/{id} can update balance and name."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     create_resp = await client.post(
         "/api/v1/accounts",
@@ -273,7 +273,7 @@ async def test_update_account_balance(client):
 async def test_update_account_deactivate(client):
     """Deactivating an account excludes it from the list."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     create_resp = await client.post(
         "/api/v1/accounts",
@@ -303,7 +303,7 @@ async def test_update_account_deactivate(client):
 async def test_delete_account(client):
     """DELETE /accounts/{id} removes the account (204)."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     create_resp = await client.post(
         "/api/v1/accounts",
@@ -331,7 +331,7 @@ async def test_delete_account(client):
 async def test_networth_summary_mixed_accounts(client):
     """Summary correctly separates assets and liabilities."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     # assets
     await client.post(
@@ -394,7 +394,7 @@ async def test_networth_summary_mixed_accounts(client):
 async def test_networth_snapshot_creation(client):
     """POST /networth/snapshot captures current totals (201)."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     await client.post(
         "/api/v1/accounts",
@@ -430,7 +430,7 @@ async def test_networth_snapshot_creation(client):
 async def test_networth_history(client):
     """GET /networth/history returns snapshots in order."""
     data = await register_user(client)
-    h = auth_header(data["token"])
+    h = auth_header(data["access_token"])
 
     await client.post(
         "/api/v1/accounts",

@@ -16,7 +16,7 @@ from tests.conftest import auth_header, register_user
 async def test_spending_by_merchant_empty(client):
     """GET /reports/spending-by-merchant returns empty list when no data."""
     data = await register_user(client)
-    token = data["token"]
+    token = data["access_token"]
 
     resp = await client.get(
         "/api/v1/reports/spending-by-merchant",
@@ -30,7 +30,7 @@ async def test_spending_by_merchant_empty(client):
 async def test_spending_by_merchant_with_filters(client):
     """GET /reports/spending-by-merchant accepts year/month/limit params."""
     data = await register_user(client)
-    token = data["token"]
+    token = data["access_token"]
 
     resp = await client.get(
         "/api/v1/reports/spending-by-merchant",
@@ -45,7 +45,7 @@ async def test_spending_by_merchant_with_filters(client):
 async def test_cashflow_sankey_empty(client):
     """GET /reports/cashflow-sankey returns nodes/links structure when no data."""
     data = await register_user(client)
-    token = data["token"]
+    token = data["access_token"]
 
     resp = await client.get(
         "/api/v1/reports/cashflow-sankey",
@@ -64,7 +64,7 @@ async def test_cashflow_sankey_empty(client):
 async def test_savings_rate_empty(client):
     """GET /reports/savings-rate returns zero values when no data."""
     data = await register_user(client)
-    token = data["token"]
+    token = data["access_token"]
 
     resp = await client.get(
         "/api/v1/reports/savings-rate",
@@ -95,7 +95,7 @@ async def test_spending_trends_graceful_on_sqlite(client):
     will pass when running against a real Postgres database.
     """
     data = await register_user(client)
-    token = data["token"]
+    token = data["access_token"]
 
     resp = await client.get(
         "/api/v1/reports/spending-trends",

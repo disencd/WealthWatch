@@ -45,7 +45,7 @@ class LoginRequest(BaseModel):
 
 
 class AuthResponse(BaseModel):
-    token: str
+    access_token: str
     user: dict
 
 
@@ -158,7 +158,7 @@ async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
     await db.refresh(user)
 
     token = create_token(user.id, user.email, membership.family_id, membership.role.value)
-    return AuthResponse(token=token, user=_user_dict(user))
+    return AuthResponse(access_token=token, user=_user_dict(user))
 
 
 @router.post("/login")
@@ -182,7 +182,7 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "User is not part of any active family")
 
     token = create_token(user.id, user.email, membership.family_id, membership.role.value)
-    return AuthResponse(token=token, user=_user_dict(user))
+    return AuthResponse(access_token=token, user=_user_dict(user))
 
 
 @router.get("/profile")
@@ -247,7 +247,7 @@ async def google_auth(req: GoogleAuthRequest, db: AsyncSession = Depends(get_db)
             raise HTTPException(status.HTTP_403_FORBIDDEN, "User is not part of any active family")
 
         token = create_token(user.id, user.email, membership.family_id, membership.role.value)
-        return AuthResponse(token=token, user=_user_dict(user))
+        return AuthResponse(access_token=token, user=_user_dict(user))
 
     # New user — auto-register
     first_name = idinfo.get("given_name", email.split("@")[0])
@@ -268,4 +268,4 @@ async def google_auth(req: GoogleAuthRequest, db: AsyncSession = Depends(get_db)
     await db.refresh(user)
 
     token = create_token(user.id, user.email, membership.family_id, membership.role.value)
-    return AuthResponse(token=token, user=_user_dict(user))
+    return AuthResponse(access_token=token, user=_user_dict(user))

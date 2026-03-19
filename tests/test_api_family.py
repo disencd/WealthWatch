@@ -11,7 +11,7 @@ async def _register_main(client):
         first_name="Alice",
         last_name="Smith",
     )
-    return data["token"], data["user"]
+    return data["access_token"], data["user"]
 
 
 async def _register_secondary(client):
@@ -23,7 +23,7 @@ async def _register_secondary(client):
         first_name="Bob",
         last_name="Jones",
     )
-    return data["token"], data["user"]
+    return data["access_token"], data["user"]
 
 
 # ------------------------------------------------ 1. list families after register

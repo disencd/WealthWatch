@@ -27,7 +27,7 @@ async def _create_expense_with_splits(client, token, payer_id, split_user_id, am
 async def test_empty_balances(client):
     """GET /balances returns an empty list when no expenses exist."""
     data = await register_user(client)
-    token = data["token"]
+    token = data["access_token"]
 
     resp = await client.get("/api/v1/balances", headers=auth_header(token))
 
@@ -41,7 +41,7 @@ async def test_balances_after_expense_with_splits(client):
     data_a = await register_user(client, email="a@example.com", first_name="Alice")
     data_b = await register_user(client, email="b@example.com", first_name="Bob")
 
-    token_a = data_a["token"]
+    token_a = data_a["access_token"]
     id_a = data_a["user"]["id"]
     id_b = data_b["user"]["id"]
 
@@ -58,7 +58,7 @@ async def test_balances_after_expense_with_splits(client):
     assert balances[0]["balance"] == 60.0
 
     # From Bob's perspective, he owes Alice $60 (negative balance)
-    bal_resp_b = await client.get("/api/v1/balances", headers=auth_header(data_b["token"]))
+    bal_resp_b = await client.get("/api/v1/balances", headers=auth_header(data_b["access_token"]))
     assert bal_resp_b.status_code == 200
     balances_b = bal_resp_b.json()
     assert len(balances_b) == 1
@@ -71,8 +71,8 @@ async def test_balance_with_specific_user(client):
     data_a = await register_user(client, email="a@example.com", first_name="Alice")
     data_b = await register_user(client, email="b@example.com", first_name="Bob")
 
-    token_a = data_a["token"]
-    token_b = data_b["token"]
+    token_a = data_a["access_token"]
+    token_b = data_b["access_token"]
     id_a = data_a["user"]["id"]
     id_b = data_b["user"]["id"]
 
@@ -98,7 +98,7 @@ async def test_balance_with_specific_user(client):
 async def test_balance_with_nonexistent_user(client):
     """GET /balances/users/{id} returns 404 for unknown user."""
     data = await register_user(client)
-    token = data["token"]
+    token = data["access_token"]
 
     resp = await client.get(
         "/api/v1/balances/users/99999",

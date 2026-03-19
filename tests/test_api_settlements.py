@@ -32,7 +32,7 @@ async def test_create_settlement(client):
 
     resp = await _create_settlement(
         client,
-        data_a["token"],
+        data_a["access_token"],
         to_user_id=data_b["user"]["id"],
         amount=75.0,
         currency="USD",
@@ -54,8 +54,8 @@ async def test_create_settlement(client):
 async def test_list_settlements(client):
     """GET /settlements returns settlements where user is sender or receiver."""
     data_a, data_b = await _register_two_users(client)
-    token_a = data_a["token"]
-    token_b = data_b["token"]
+    token_a = data_a["access_token"]
+    token_b = data_b["access_token"]
     id_b = data_b["user"]["id"]
 
     # Alice creates two settlements to Bob
@@ -76,7 +76,7 @@ async def test_list_settlements(client):
 async def test_get_settlement_by_id(client):
     """GET /settlements/{id} returns the correct settlement."""
     data_a, data_b = await _register_two_users(client)
-    token_a = data_a["token"]
+    token_a = data_a["access_token"]
 
     create_resp = await _create_settlement(
         client,
@@ -103,7 +103,7 @@ async def test_get_settlement_not_found(client):
     data = await register_user(client)
     resp = await client.get(
         "/api/v1/settlements/99999",
-        headers=auth_header(data["token"]),
+        headers=auth_header(data["access_token"]),
     )
     assert resp.status_code == 404
 
@@ -111,7 +111,7 @@ async def test_get_settlement_not_found(client):
 async def test_update_status_to_completed(client):
     """PUT /settlements/{id}/status transitions to completed."""
     data_a, data_b = await _register_two_users(client)
-    token_a = data_a["token"]
+    token_a = data_a["access_token"]
 
     create_resp = await _create_settlement(
         client,
@@ -141,7 +141,7 @@ async def test_update_status_to_completed(client):
 async def test_update_status_to_cancelled(client):
     """PUT /settlements/{id}/status transitions to cancelled."""
     data_a, data_b = await _register_two_users(client)
-    token_a = data_a["token"]
+    token_a = data_a["access_token"]
 
     create_resp = await _create_settlement(
         client,
@@ -164,7 +164,7 @@ async def test_update_status_to_cancelled(client):
 async def test_update_status_invalid(client):
     """PUT /settlements/{id}/status rejects invalid status values."""
     data_a, data_b = await _register_two_users(client)
-    token_a = data_a["token"]
+    token_a = data_a["access_token"]
 
     create_resp = await _create_settlement(
         client,

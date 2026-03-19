@@ -18,7 +18,7 @@ DEFAULT_CATEGORY_NAMES = sorted(
 async def _setup(client: AsyncClient):
     """Register a user and return (token, categories, subcategories)."""
     data = await register_user(client)
-    token = data["token"]
+    token = data["access_token"]
     headers = auth_header(token)
 
     cats = (await client.get(f"{BASE}/categories", headers=headers)).json()
@@ -40,7 +40,7 @@ def _find_sub(subs: list[dict], name: str) -> dict:
 async def test_list_default_categories(client: AsyncClient):
     """Registration seeds exactly 7 default expense categories."""
     data = await register_user(client)
-    headers = auth_header(data["token"])
+    headers = auth_header(data["access_token"])
 
     resp = await client.get(f"{BASE}/categories", headers=headers)
     assert resp.status_code == 200
@@ -60,7 +60,7 @@ async def test_list_default_categories(client: AsyncClient):
 async def test_create_category(client: AsyncClient):
     """Superadmin can create a new category."""
     data = await register_user(client)
-    headers = auth_header(data["token"])
+    headers = auth_header(data["access_token"])
 
     resp = await client.post(
         f"{BASE}/categories",
@@ -439,7 +439,7 @@ async def test_monthly_summary(client: AsyncClient):
 async def test_monthly_summary_empty_month(client: AsyncClient):
     """Summary for a month with no expenses returns zero totals."""
     data = await register_user(client)
-    headers = auth_header(data["token"])
+    headers = auth_header(data["access_token"])
 
     resp = await client.get(
         f"{BASE}/summary/monthly",

@@ -8,7 +8,7 @@ from tests.conftest import auth_header, register_user
 async def test_register_success(client):
     """Successful registration returns 201 with token and user data."""
     data = await register_user(client)
-    assert "token" in data
+    assert "access_token" in data
     assert data["user"]["email"] == "test@example.com"
     assert data["user"]["first_name"] == "Test"
     assert data["user"]["last_name"] == "User"
@@ -48,7 +48,7 @@ async def test_login_success(client):
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert "token" in body
+    assert "access_token" in body
     assert body["user"]["email"] == "test@example.com"
 
 
@@ -77,7 +77,7 @@ async def test_login_nonexistent_user(client):
 async def test_profile_with_token(client):
     """GET /api/v1/auth/profile with valid token returns the user."""
     data = await register_user(client)
-    token = data["token"]
+    token = data["access_token"]
     resp = await client.get(
         "/api/v1/auth/profile",
         headers=auth_header(token),
