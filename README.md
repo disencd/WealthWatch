@@ -15,6 +15,7 @@ A comprehensive personal finance dashboard built with Python (FastAPI), PostgreS
 - **Expense Splitting**: Split expenses with friends/groups (equal, exact, percentage)
 - **Family Collaboration**: Invite a partner with separate login but shared household view
 - **"Yours, Mine, Ours"**: Label accounts by ownership to distinguish joint vs. individual finances
+- **Google Sign-In**: One-click login/registration with Google accounts
 
 ## Tech Stack
 
@@ -22,7 +23,7 @@ A comprehensive personal finance dashboard built with Python (FastAPI), PostgreS
 - **ORM**: SQLAlchemy 2.0 (async) with Pydantic v2 schemas
 - **Database**: PostgreSQL with asyncpg driver
 - **Frontend**: SvelteKit 2 (Svelte 5) with TailwindCSS v4, Chart.js, Lucide icons
-- **Authentication**: JWT (python-jose) with bcrypt password hashing (passlib)
+- **Authentication**: JWT (python-jose) with bcrypt password hashing (passlib), Google OAuth via Google Identity Services
 - **Containerization**: Multi-stage Docker build (Node + Python)
 - **Testing**: pytest
 
@@ -122,7 +123,44 @@ DB_USER=wealthwatch_user
 DB_PASSWORD=your_db_password
 DB_NAME=wealthwatch_db
 JWT_SECRET=your_super_secret_jwt_key_here
+GOOGLE_CLIENT_ID=your_google_oauth_client_id  # optional, enables Google Sign-In
 ```
+
+For the frontend (in `frontend/.env` or exported in your shell):
+```env
+VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id  # same value as backend
+```
+
+### Google Sign-In Setup (Optional)
+
+Google Sign-In requires a Google Cloud OAuth 2.0 Client ID. Skip this section if you only need email/password authentication — the Google button won't appear when the client ID is not configured.
+
+1. **Create OAuth Client ID** in [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
+   - Application type: **Web application**
+   - Authorized JavaScript origins:
+     - `http://localhost:5173` (local dev)
+     - `https://your-production-domain.com` (production)
+   - No redirect URIs needed (uses Google Identity Services popup flow)
+
+2. **Local development** — add to your `.env` files:
+   ```bash
+   # Backend (.env in project root)
+   GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+
+   # Frontend (frontend/.env)
+   VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+   ```
+
+3. **Production (GitHub Actions / Cloud Run)** — configure these:
+   - **GCP Secret Manager**: Create a secret for the backend:
+     ```bash
+     echo -n "your-client-id.apps.googleusercontent.com" | \
+       gcloud secrets create wealthwatch-google-client-id --data-file=-
+     ```
+   - **GitHub Actions variable**: Set `GOOGLE_CLIENT_ID` as a repository variable
+     (Settings > Secrets and variables > Actions > Variables) for the frontend build.
+
+The deploy workflow automatically passes `GOOGLE_CLIENT_ID` to Cloud Run via Secret Manager and injects `VITE_GOOGLE_CLIENT_ID` into the frontend build.
 
 ## API Endpoints
 
@@ -131,6 +169,7 @@ All endpoints below (except Auth and Health) require a valid JWT in the `Authori
 ### Authentication
 - `POST /api/v1/auth/register` - Register a new user (auto-creates family & default categories)
 - `POST /api/v1/auth/login` - Login, returns JWT token
+- `POST /api/v1/auth/google` - Authenticate with Google ID token (auto-creates account on first login)
 - `GET /api/v1/profile` - Get current user profile
 
 ### Accounts

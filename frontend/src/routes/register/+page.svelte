@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { onMount } from 'svelte';
   import { api } from '$lib/api';
   import { token, currentUser } from '$lib/stores/auth';
   import { BarChart3 } from 'lucide-svelte';
@@ -10,6 +11,42 @@
   let email = $state('');
   let password = $state('');
   let loading = $state(false);
+  let googleBtnRef: HTMLDivElement;
+
+  declare const google: any;
+
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+
+  async function handleGoogleCredential(response: { credential: string }) {
+    loading = true;
+    try {
+      const data = await api<{ token: string; user: Record<string, unknown> }>('/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({ credential: response.credential })
+      });
+      token.set(data.token);
+      currentUser.set(data.user);
+      goto('/dashboard');
+    } catch (err: unknown) {
+      notify((err as Error).message || 'Google sign-up failed', 'error');
+    } finally {
+      loading = false;
+    }
+  }
+
+  onMount(() => {
+    if (!GOOGLE_CLIENT_ID || typeof google === 'undefined') return;
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleCredential
+    });
+    google.accounts.id.renderButton(googleBtnRef, {
+      theme: 'outline',
+      size: 'large',
+      width: '100%',
+      text: 'signup_with'
+    });
+  });
 
   async function handleRegister(e: Event) {
     e.preventDefault();
@@ -39,6 +76,13 @@
       <h1 class="text-2xl font-bold text-gray-900">Join WealthWatch</h1>
       <p class="text-gray-500 text-sm mt-1">Start tracking your finances today</p>
     </div>
+    {#if GOOGLE_CLIENT_ID}
+      <div class="mb-4 flex justify-center" bind:this={googleBtnRef}></div>
+      <div class="relative mb-4">
+        <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div>
+        <div class="relative flex justify-center text-sm"><span class="bg-white px-3 text-gray-400">or</span></div>
+      </div>
+    {/if}
     <form onsubmit={handleRegister}>
       <div class="grid grid-cols-2 gap-3 mb-4">
         <div>
