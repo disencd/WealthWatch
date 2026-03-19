@@ -4,8 +4,6 @@ import os
 
 # Set minimum env vars so importing app.config never blows up.
 os.environ.setdefault("JWT_SECRET", "test-secret")
-os.environ.setdefault("DB_HOST", "localhost")
-os.environ.setdefault("DB_PASSWORD", "test")
 
 from app.config import Settings, get_settings
 
@@ -22,13 +20,7 @@ def _clear_settings_cache():
 def _make(**overrides) -> Settings:
     """Build a Settings with sensible defaults, overridden by *overrides*."""
     defaults = dict(
-        DB_HOST="localhost",
-        DB_PORT=5432,
-        DB_USER="u",
-        DB_PASSWORD="p",
-        DB_NAME="d",
-        DATABASE_URL="",
-        CLOUD_SQL_CONNECTION_NAME="",
+        SQLITE_DB_PATH="wealthwatch.db",
         JWT_SECRET="secret",
         JWT_EXPIRES_IN="168h",
         ALLOWED_ORIGINS="",
@@ -39,136 +31,26 @@ def _make(**overrides) -> Settings:
 
 
 # ---------------------------------------------------------------------------
-# database_url_async — TCP fallback (branch 3)
+# database_url — SQLite
 # ---------------------------------------------------------------------------
 
 
-def test_database_url_tcp_default():
-    _clear_settings_cache()
-    s = _make(DB_HOST="myhost", DB_PORT=5432, DB_USER="u", DB_PASSWORD="p", DB_NAME="d")
-    assert s.database_url_async == "postgresql+asyncpg://u:p@myhost:5432/d"
-
-
-def test_database_url_tcp_custom_port():
-    _clear_settings_cache()
-    s = _make(DB_HOST="10.0.0.1", DB_PORT=6543, DB_USER="admin", DB_PASSWORD="s3cr3t", DB_NAME="mydb")
-    assert s.database_url_async == "postgresql+asyncpg://admin:s3cr3t@10.0.0.1:6543/mydb"
-
-
-# ---------------------------------------------------------------------------
-# database_url_async — DATABASE_URL present (branch 1)
-# ---------------------------------------------------------------------------
-
-
-def test_database_url_neon_swaps_driver_and_strips_sslmode():
-    _clear_settings_cache()
-    s = _make(DATABASE_URL="postgresql://user:pass@ep-xxx.neon.tech/neondb?sslmode=require")
-    url = s.database_url_async
-    assert url.startswith("postgresql+asyncpg://")
-    assert "user:pass@ep-xxx.neon.tech/neondb" in url
-    assert "sslmode" not in url
-
-
-def test_database_url_postgres_scheme():
-    """Handles the shorter 'postgres://' scheme used by some providers."""
-    _clear_settings_cache()
-    s = _make(DATABASE_URL="postgres://user:pass@host.supabase.com:6543/postgres")
-    url = s.database_url_async
-    assert url.startswith("postgresql+asyncpg://")
-    assert "user:pass@host.supabase.com:6543/postgres" in url
-
-
-def test_database_url_preserves_other_query_params():
-    _clear_settings_cache()
-    s = _make(DATABASE_URL="postgresql://u:p@host/db?sslmode=require&options=-c+search_path%3Dpublic")
-    url = s.database_url_async
-    assert "sslmode" not in url
-    assert "options=" in url  # other params kept
-
-
-# ---------------------------------------------------------------------------
-# database_url_async — Cloud SQL Unix socket (branch 2)
-# ---------------------------------------------------------------------------
-
-
-def test_database_url_cloud_sql_unix_socket():
-    _clear_settings_cache()
-    s = _make(
-        CLOUD_SQL_CONNECTION_NAME="proj:us-central1:inst",
-        DB_USER="pguser",
-        DB_PASSWORD="pgpass",
-        DB_NAME="mydb",
-    )
-    url = s.database_url_async
-    assert url == "postgresql+asyncpg://pguser:pgpass@/mydb?host=/cloudsql/proj:us-central1:inst"
-
-
-# ---------------------------------------------------------------------------
-# database_url_async — priority: DATABASE_URL > CLOUD_SQL > TCP
-# ---------------------------------------------------------------------------
-
-
-def test_database_url_priority_database_url_wins():
-    """DATABASE_URL takes precedence over CLOUD_SQL_CONNECTION_NAME."""
-    _clear_settings_cache()
-    s = _make(
-        DATABASE_URL="postgresql://u:p@neon/db",
-        CLOUD_SQL_CONNECTION_NAME="proj:region:inst",
-    )
-    assert "neon/db" in s.database_url_async
-    assert "cloudsql" not in s.database_url_async
-
-
-# ---------------------------------------------------------------------------
-# database_url (backward-compat alias)
-# ---------------------------------------------------------------------------
-
-
-def test_database_url_alias():
+def test_database_url_default():
     _clear_settings_cache()
     s = _make()
-    assert s.database_url == s.database_url_async
+    assert s.database_url == "sqlite+aiosqlite:///wealthwatch.db"
 
 
-# ---------------------------------------------------------------------------
-# requires_ssl
-# ---------------------------------------------------------------------------
-
-
-def test_requires_ssl_true_for_require():
+def test_database_url_custom_path():
     _clear_settings_cache()
-    s = _make(DATABASE_URL="postgresql://u:p@host/db?sslmode=require")
-    assert s.requires_ssl is True
+    s = _make(SQLITE_DB_PATH="/data/wealthwatch.db")
+    assert s.database_url == "sqlite+aiosqlite:////data/wealthwatch.db"
 
 
-def test_requires_ssl_true_for_verify_full():
+def test_database_url_memory():
     _clear_settings_cache()
-    s = _make(DATABASE_URL="postgresql://u:p@host/db?sslmode=verify-full")
-    assert s.requires_ssl is True
-
-
-def test_requires_ssl_true_for_verify_ca():
-    _clear_settings_cache()
-    s = _make(DATABASE_URL="postgresql://u:p@host/db?sslmode=verify-ca")
-    assert s.requires_ssl is True
-
-
-def test_requires_ssl_false_when_no_database_url():
-    _clear_settings_cache()
-    s = _make(DATABASE_URL="")
-    assert s.requires_ssl is False
-
-
-def test_requires_ssl_false_for_disable():
-    _clear_settings_cache()
-    s = _make(DATABASE_URL="postgresql://u:p@host/db?sslmode=disable")
-    assert s.requires_ssl is False
-
-
-def test_requires_ssl_false_when_no_sslmode_param():
-    _clear_settings_cache()
-    s = _make(DATABASE_URL="postgresql://u:p@host/db")
-    assert s.requires_ssl is False
+    s = _make(SQLITE_DB_PATH=":memory:")
+    assert s.database_url == "sqlite+aiosqlite:///:memory:"
 
 
 # ---------------------------------------------------------------------------

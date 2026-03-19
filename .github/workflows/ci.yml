@@ -38,8 +38,6 @@ jobs:
         run: python -m pytest tests/ -v --tb=short
         env:
           JWT_SECRET: ci-test-secret
-          DB_HOST: localhost
-          DB_PASSWORD: test
 
   docker:
     name: Docker Build

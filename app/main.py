@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting WealthWatch (Python/FastAPI)")
     if settings.is_cloud_run:
         logger.info("Running on Cloud Run (service=%s)", settings.K_SERVICE)
-    logger.info("Database: %s@%s/%s", settings.DB_USER, settings.DB_HOST, settings.DB_NAME)
+    logger.info("Database: SQLite at %s", settings.SQLITE_DB_PATH)
     await init_db()
     logger.info("Database tables ready")
     yield

@@ -1,48 +1,19 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: wealthwatch-postgres
-    environment:
-      POSTGRES_DB: wealthwatch_db
-      POSTGRES_USER: wealthwatch_user
-      POSTGRES_PASSWORD: wealthwatch_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d
-    networks:
-      - wealthwatch-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U wealthwatch_user -d wealthwatch_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # WealthWatch Application (Python / FastAPI)
+  # WealthWatch Application (Python / FastAPI + SQLite)
   app:
     build: .
     container_name: wealthwatch-app
     ports:
       - "8080:8080"
     environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=wealthwatch_user
-      - DB_PASSWORD=wealthwatch_password
-      - DB_NAME=wealthwatch_db
-      - DB_SSLMODE=disable
+      - SQLITE_DB_PATH=/data/wealthwatch.db
       - JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
       - JWT_EXPIRES_IN=168h
       - PORT=8080
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - wealthwatch-network
+    volumes:
+      - sqlite_data:/data
     restart: unless-stopped
 
   # Redis for caching (optional)
@@ -51,16 +22,10 @@ services:
     container_name: wealthwatch-redis
     ports:
       - "6379:6379"
-    networks:
-      - wealthwatch-network
     volumes:
       - redis_data:/data
     restart: unless-stopped
 
 volumes:
-  postgres_data:
+  sqlite_data:
   redis_data:
-
-networks:
-  wealthwatch-network:
-    driver: bridge
