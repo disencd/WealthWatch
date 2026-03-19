@@ -65,10 +65,6 @@ function app() {
 
     money(n) { return '$' + (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
     pct(n) { return (Number(n) || 0).toFixed(1) + '%'; },
-    fmtDate(d) { if (!d) return ''; return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); },
-    typeLabel(t) {
-      const m = { checking:'Checking', savings:'Savings', credit_card:'Credit Card', investment:'Investment', loan:'Loan', mortgage:'Mortgage', real_estate:'Real Estate', other:'Other' };
-      return m[t] || t;
-    }
+    fmtDate(d) { if (!d) return ''; return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
   };
 }

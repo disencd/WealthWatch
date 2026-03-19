@@ -16,7 +16,6 @@ from app.routers import (
     auth,
     budget,
     family,
-    investment,
     recurring,
     reports,
     rules,
@@ -63,7 +62,6 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(family.router)
 app.include_router(budget.router)
-app.include_router(investment.router)
 app.include_router(recurring.router)
 app.include_router(rules.router)
 app.include_router(reports.router)

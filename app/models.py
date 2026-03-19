@@ -31,16 +31,6 @@ class BudgetPeriod(str, enum.Enum):
     yearly = "yearly"
 
 
-class InvestmentType(str, enum.Enum):
-    stock = "stock"
-    bond = "bond"
-    etf = "etf"
-    mutual_fund = "mutual_fund"
-    crypto = "crypto"
-    cash = "cash"
-    other = "other"
-
-
 class RecurringFrequency(str, enum.Enum):
     weekly = "weekly"
     biweekly = "biweekly"
@@ -174,25 +164,6 @@ class BudgetExpense(TimestampMixin, Base):
     family: Mapped[Family] = relationship()
     category: Mapped[Category] = relationship()
     sub_category: Mapped[SubCategory] = relationship()
-
-
-class InvestmentHolding(TimestampMixin, Base):
-    __tablename__ = "investment_holdings"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    family_id: Mapped[int] = mapped_column(Integer, ForeignKey("families.id"), nullable=False, index=True)
-    symbol: Mapped[str] = mapped_column(String, nullable=False)
-    name: Mapped[str] = mapped_column(String, nullable=False)
-    investment_type: Mapped[InvestmentType] = mapped_column(Enum(InvestmentType), nullable=False)
-    quantity: Mapped[float] = mapped_column(Float, nullable=False, default=0)
-    cost_basis: Mapped[float] = mapped_column(Float, nullable=False, default=0)
-    current_price: Mapped[float] = mapped_column(Float, nullable=False, default=0)
-    current_value: Mapped[float] = mapped_column(Float, nullable=False, default=0)
-    gain_loss: Mapped[float] = mapped_column(Float, nullable=False, default=0)
-    gain_loss_percent: Mapped[float] = mapped_column(Float, nullable=False, default=0)
-    last_updated_at: Mapped[datetime | None] = mapped_column(DateTime)
-
-    family: Mapped[Family] = relationship()
 
 
 class RecurringTransaction(TimestampMixin, Base):

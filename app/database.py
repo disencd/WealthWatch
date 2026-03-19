@@ -58,7 +58,6 @@ async def init_db(max_retries: int = 10) -> None:
         Category,
         Family,
         FamilyMembership,
-        InvestmentHolding,
         RecurringTransaction,
         SubCategory,
         User,
