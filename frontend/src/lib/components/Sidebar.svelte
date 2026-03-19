@@ -3,7 +3,7 @@
   import { logout, currentUser } from '$lib/stores/auth';
   import {
     LayoutDashboard, Coins, Landmark, PieChart, Receipt, PiggyBank,
-    RefreshCw, Wand2, BarChart3, Shuffle, Split, Users, Scale,
+    RefreshCw, Wand2, BarChart3, Shuffle,
     Heart, LogOut
   } from 'lucide-svelte';
 
@@ -36,14 +36,6 @@
       items: [
         { href: '/reports', icon: BarChart3, label: 'Spending Trends' },
         { href: '/cashflow', icon: Shuffle, label: 'Cash Flow' },
-      ]
-    },
-    {
-      label: 'Sharing',
-      items: [
-        { href: '/expenses', icon: Split, label: 'Split Expenses' },
-        { href: '/groups', icon: Users, label: 'Groups' },
-        { href: '/balances', icon: Scale, label: 'Balances' },
       ]
     },
     {

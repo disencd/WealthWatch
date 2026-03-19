@@ -15,16 +15,12 @@ from app.models import User
 from app.routers import (
     account,
     auth,
-    balances,
     budget,
-    expenses,
     family,
-    groups,
     investment,
     recurring,
     reports,
     rules,
-    settlements,
     ui,
 )
 
@@ -73,10 +69,6 @@ app.include_router(investment.router)
 app.include_router(recurring.router)
 app.include_router(rules.router)
 app.include_router(reports.router)
-app.include_router(expenses.router)
-app.include_router(groups.router)
-app.include_router(balances.router)
-app.include_router(settlements.router)
 
 # Serve static assets (CSS, JS)
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")

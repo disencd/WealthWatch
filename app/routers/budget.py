@@ -580,12 +580,16 @@ async def _import_one_monthly(db: AsyncSession, fid: int, uid: int, upload: Uplo
 
     async def ensure_imported_cat():
         existing = (
-            await db.execute(
-                select(Category).where(
-                    Category.family_id == fid, Category.type == CategoryType.expense, Category.name == "Imported"
+            (
+                await db.execute(
+                    select(Category).where(
+                        Category.family_id == fid, Category.type == CategoryType.expense, Category.name == "Imported"
+                    )
                 )
             )
-        ).scalar_one_or_none()
+            .scalars()
+            .first()
+        )
         if existing:
             return existing, False
         cat = Category(family_id=fid, type=CategoryType.expense, name="Imported", is_active=True)
@@ -598,18 +602,24 @@ async def _import_one_monthly(db: AsyncSession, fid: int, uid: int, upload: Uplo
         if not name:
             return 0, 0, False, False
         sub = (
-            await db.execute(select(SubCategory).where(SubCategory.family_id == fid, SubCategory.name == name))
-        ).scalar_one_or_none()
+            (await db.execute(select(SubCategory).where(SubCategory.family_id == fid, SubCategory.name == name)))
+            .scalars()
+            .first()
+        )
         if sub:
             return sub.category_id, sub.id, False, False
         imp_cat, new_cat = await ensure_imported_cat()
         existing = (
-            await db.execute(
-                select(SubCategory).where(
-                    SubCategory.family_id == fid, SubCategory.category_id == imp_cat.id, SubCategory.name == name
+            (
+                await db.execute(
+                    select(SubCategory).where(
+                        SubCategory.family_id == fid, SubCategory.category_id == imp_cat.id, SubCategory.name == name
+                    )
                 )
             )
-        ).scalar_one_or_none()
+            .scalars()
+            .first()
+        )
         if existing:
             return existing.category_id, existing.id, new_cat, False
         new_sub = SubCategory(family_id=fid, category_id=imp_cat.id, name=name, is_active=True)

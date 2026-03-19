@@ -16,19 +16,14 @@ from app.models import (
     BudgetPeriod,
     Category,
     CategoryType,
-    Expense,
     Family,
     FamilyMembership,
     FamilyRole,
-    Group,
-    GroupMember,
     InvestmentHolding,
     InvestmentType,
     NetWorthSnapshot,
     RecurringFrequency,
     RecurringTransaction,
-    Settlement,
-    Split,
     SubCategory,
     User,
 )
@@ -42,11 +37,6 @@ def test_table_names():
     assert SubCategory.__tablename__ == "sub_categories"
     assert Budget.__tablename__ == "budgets"
     assert BudgetExpense.__tablename__ == "budget_expenses"
-    assert Group.__tablename__ == "groups"
-    assert GroupMember.__tablename__ == "group_members"
-    assert Expense.__tablename__ == "expenses"
-    assert Split.__tablename__ == "splits"
-    assert Settlement.__tablename__ == "settlements"
     assert Account.__tablename__ == "accounts"
     assert InvestmentHolding.__tablename__ == "investment_holdings"
     assert NetWorthSnapshot.__tablename__ == "net_worth_snapshots"
@@ -66,8 +56,8 @@ def test_enums():
 
 
 def test_model_count():
-    """Ensure we have all 17 models."""
+    """Ensure we have all 12 models."""
     from app.database import Base
 
     tables = Base.metadata.tables
-    assert len(tables) == 17, f"Expected 17 tables, got {len(tables)}: {list(tables.keys())}"
+    assert len(tables) == 12, f"Expected 12 tables, got {len(tables)}: {list(tables.keys())}"

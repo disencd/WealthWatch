@@ -13,9 +13,6 @@
     '/rules': 'Auto Rules',
     '/reports': 'Spending Trends',
     '/cashflow': 'Cash Flow',
-    '/expenses': 'Split Expenses',
-    '/groups': 'Groups',
-    '/balances': 'Balances',
     '/family': 'Family / Partner'
   };
 

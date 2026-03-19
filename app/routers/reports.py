@@ -1,5 +1,7 @@
+from datetime import date, timedelta
+
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import extract, func, select, text
+from sqlalchemy import extract, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import TokenData, get_current_user
@@ -15,6 +17,7 @@ async def spending_trends(
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    cutoff = date.today() - timedelta(days=months * 30)
     yr = extract("year", BudgetExpense.date).label("year")
     mo = extract("month", BudgetExpense.date).label("month")
     rows = (
@@ -22,7 +25,7 @@ async def spending_trends(
             select(yr, mo, func.coalesce(func.sum(BudgetExpense.amount), 0).label("total_spent"))
             .where(
                 BudgetExpense.family_id == current_user.family_id,
-                BudgetExpense.date >= func.now() - text(f"INTERVAL '{months} months'"),
+                BudgetExpense.date >= cutoff,
             )
             .group_by(yr, mo)
             .order_by(yr, mo)

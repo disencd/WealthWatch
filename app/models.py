@@ -95,10 +95,6 @@ class User(TimestampMixin, Base):
     phone: Mapped[str | None] = mapped_column(String, default="")
     avatar: Mapped[str | None] = mapped_column(String, default="")
 
-    groups: Mapped[list[Group]] = relationship(secondary="group_members", back_populates="members")
-    expenses: Mapped[list[Expense]] = relationship(foreign_keys="Expense.payer_id", back_populates="payer")
-    splits: Mapped[list[Split]] = relationship(foreign_keys="Split.user_id", back_populates="user")
-
     @property
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}"
@@ -195,75 +191,6 @@ class BudgetExpense(TimestampMixin, Base):
     family: Mapped[Family] = relationship()
     category: Mapped[Category] = relationship()
     sub_category: Mapped[SubCategory] = relationship()
-
-
-class Group(TimestampMixin, Base):
-    __tablename__ = "groups"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String, nullable=False)
-    description: Mapped[str | None] = mapped_column(Text, default="")
-    avatar: Mapped[str | None] = mapped_column(String, default="")
-    created_by: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-
-    members: Mapped[list[User]] = relationship(secondary="group_members", back_populates="groups")
-    expenses: Mapped[list[Expense]] = relationship(back_populates="group")
-    creator: Mapped[User] = relationship(foreign_keys=[created_by])
-
-
-class GroupMember(Base):
-    __tablename__ = "group_members"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    group_id: Mapped[int] = mapped_column(Integer, ForeignKey("groups.id"), nullable=False)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    joined_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
-
-
-class Expense(TimestampMixin, Base):
-    __tablename__ = "expenses"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    title: Mapped[str] = mapped_column(String, nullable=False)
-    description: Mapped[str | None] = mapped_column(Text, default="")
-    amount: Mapped[float] = mapped_column(Float, nullable=False)
-    currency: Mapped[str] = mapped_column(String, default="USD")
-    date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    payer_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    group_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("groups.id"))
-    category: Mapped[str | None] = mapped_column(String, default="")
-    payer: Mapped[User] = relationship(foreign_keys=[payer_id], back_populates="expenses")
-    group: Mapped[Group | None] = relationship(back_populates="expenses")
-    splits: Mapped[list[Split]] = relationship(back_populates="expense")
-
-
-class Split(TimestampMixin, Base):
-    __tablename__ = "splits"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    expense_id: Mapped[int] = mapped_column(Integer, ForeignKey("expenses.id"), nullable=False)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    amount: Mapped[float] = mapped_column(Float, nullable=False)
-    percentage: Mapped[float | None] = mapped_column(Float, default=0)
-
-    expense: Mapped[Expense] = relationship(back_populates="splits")
-    user: Mapped[User] = relationship(foreign_keys=[user_id], back_populates="splits")
-
-
-class Settlement(TimestampMixin, Base):
-    __tablename__ = "settlements"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    from_user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    to_user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    amount: Mapped[float] = mapped_column(Float, nullable=False)
-    currency: Mapped[str] = mapped_column(String, default="USD")
-    status: Mapped[str] = mapped_column(String, default="pending")
-    payment_method: Mapped[str | None] = mapped_column(String, default="")
-    notes: Mapped[str | None] = mapped_column(Text, default="")
-
-    from_user: Mapped[User] = relationship(foreign_keys=[from_user_id])
-    to_user: Mapped[User] = relationship(foreign_keys=[to_user_id])
 
 
 class Account(TimestampMixin, Base):

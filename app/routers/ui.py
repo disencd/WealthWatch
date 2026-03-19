@@ -41,10 +41,6 @@ _PAGES = {
     "/rules": "rules.html",
     "/reports": "reports.html",
     "/cashflow": "cashflow.html",
-    "/expenses": "expenses.html",
-    "/groups": "groups.html",
-    "/balances": "balances.html",
-    "/settlements": "settlements.html",
     "/family": "family.html",
 }
 
