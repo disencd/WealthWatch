@@ -25,23 +25,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
 
-      - run: pip install -r requirements-dev.txt
+      - name: Install dependencies
+        run: uv sync --frozen --dev
 
       - name: Compile check
         run: |
-          python -m py_compile app/main.py
-          python -m py_compile app/config.py
-          python -m py_compile app/database.py
-          python -m py_compile app/auth.py
-          for f in app/routers/*.py; do python -m py_compile "$f"; done
+          uv run python -m py_compile app/main.py
+          uv run python -m py_compile app/config.py
+          uv run python -m py_compile app/database.py
+          uv run python -m py_compile app/auth.py
+          for f in app/routers/*.py; do uv run python -m py_compile "$f"; done
 
       - name: Test
-        run: python -m pytest tests/ -v --tb=short
+        run: uv run pytest tests/ -v --tb=short
         env:
           JWT_SECRET: ci-test-secret
 
