@@ -35,14 +35,12 @@ COPY app/ ./app/
 # Copy SvelteKit build output as the web directory
 COPY --from=frontend-builder /frontend/build ./web/
 
-# Keep legacy web/ as fallback (if needed)
-# COPY web/ ./web-legacy/
-
-# Create app directory
-RUN chown -R appuser:appuser /app
+# Create data directory for SQLite and set ownership
+RUN mkdir -p /data && chown -R appuser:appuser /app /data
 
 USER appuser
 
+ENV SQLITE_DB_PATH=/data/wealthwatch.db
 EXPOSE 8080
 
 # Health check

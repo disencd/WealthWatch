@@ -1,8 +1,9 @@
 import asyncio
 import logging
-import ssl
+import os
 from collections.abc import AsyncGenerator
 
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -19,32 +20,28 @@ def _build_engine():
     settings = get_settings()
     url = settings.database_url
 
-    # SSL for Neon / Supabase (sslmode=require in DATABASE_URL)
-    connect_args: dict = {}
-    if settings.requires_ssl:
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE  # Neon/Supabase use trusted CAs, but asyncpg needs this
-        connect_args["ssl"] = ctx
+    # Ensure the parent directory exists for the SQLite file
+    db_path = settings.SQLITE_DB_PATH
+    db_dir = os.path.dirname(db_path)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
 
-    # Cloud Run or serverless DB: smaller pool, aggressive recycle
-    if settings.is_cloud_run or settings.DATABASE_URL:
-        return create_async_engine(
-            url,
-            echo=False,
-            pool_pre_ping=True,
-            pool_size=5,
-            max_overflow=2,
-            pool_recycle=300,  # Neon closes idle connections aggressively
-            pool_timeout=30,
-            connect_args=connect_args,
-        )
-
-    # Local / docker-compose: default pool settings
-    return create_async_engine(url, echo=False, pool_pre_ping=True, connect_args=connect_args)
+    return create_async_engine(url, echo=False)
 
 
 engine = _build_engine()
+
+
+@event.listens_for(engine.sync_engine, "connect")
+def _set_sqlite_pragmas(dbapi_conn, _connection_record):
+    """Configure SQLite for production use."""
+    cursor = dbapi_conn.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.execute("PRAGMA busy_timeout=5000")
+    cursor.close()
+
+
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
@@ -54,7 +51,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db(max_retries: int = 10) -> None:
-    from app.models import (  # noqa: F401 - ensure all models are imported
+    from app.models import (  # noqa: F401
         Account,
         AutoCategoryRule,
         Budget,
@@ -88,5 +85,4 @@ async def init_db(max_retries: int = 10) -> None:
 
 
 async def dispose_engine() -> None:
-    """Cleanly close all pooled connections (called on shutdown)."""
     await engine.dispose()

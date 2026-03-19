@@ -8,9 +8,7 @@ import os
 
 # Set test env vars BEFORE any app imports
 os.environ["JWT_SECRET"] = "test-secret-key"
-os.environ["DB_HOST"] = "localhost"
-os.environ["DB_PASSWORD"] = "test"
-os.environ["DATABASE_URL"] = ""  # force TCP fallback (overridden below)
+os.environ["SQLITE_DB_PATH"] = ":memory:"
 
 # Ensure web/_app directory exists so FastAPI StaticFiles mount doesn't fail
 os.makedirs(os.path.join(os.path.dirname(__file__), "..", "web", "_app"), exist_ok=True)
@@ -22,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.database import Base, get_db
 from app.main import app
 
-# In-memory SQLite for tests (no real Postgres needed)
+# In-memory SQLite for tests
 TEST_DB_URL = "sqlite+aiosqlite:///:memory:"
 
 engine_test = create_async_engine(TEST_DB_URL, echo=False)

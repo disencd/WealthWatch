@@ -1,6 +1,6 @@
 # WealthWatch - Personal Finance Dashboard
 
-A comprehensive personal finance dashboard built with Python (FastAPI), PostgreSQL, and a SvelteKit frontend. Track accounts, net worth, investments, budgets, recurring bills, and more — with shared access for couples.
+A comprehensive personal finance dashboard built with Python (FastAPI), SQLite, and a SvelteKit frontend. Track accounts, net worth, investments, budgets, recurring bills, and more — with shared access for couples.
 
 ## Features
 
@@ -21,7 +21,7 @@ A comprehensive personal finance dashboard built with Python (FastAPI), PostgreS
 
 - **Backend**: Python 3.12 with FastAPI
 - **ORM**: SQLAlchemy 2.0 (async) with Pydantic v2 schemas
-- **Database**: PostgreSQL with asyncpg driver
+- **Database**: SQLite with aiosqlite driver (persisted via GCS FUSE on Cloud Run)
 - **Frontend**: SvelteKit 2 (Svelte 5) with TailwindCSS v4, Chart.js, Lucide icons
 - **Authentication**: JWT (python-jose) with bcrypt password hashing (passlib), Google OAuth via Google Identity Services
 - **Containerization**: Multi-stage Docker build (Node + Python)
@@ -98,7 +98,7 @@ Open `http://localhost:8080` for the UI, `http://localhost:8080/docs` for Swagge
 
 ### Manual Setup
 
-**Prerequisites**: Python 3.12+, Node 22+, PostgreSQL
+**Prerequisites**: Python 3.12+, Node 22+
 
 1. **Backend**:
 ```bash
@@ -117,12 +117,8 @@ The Vite dev server runs on `http://localhost:5173` and proxies `/api` requests 
 
 3. Create a `.env` file (or set env vars):
 ```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=wealthwatch_user
-DB_PASSWORD=your_db_password
-DB_NAME=wealthwatch_db
 JWT_SECRET=your_super_secret_jwt_key_here
+SQLITE_DB_PATH=wealthwatch.db
 GOOGLE_CLIENT_ID=your_google_oauth_client_id  # optional, enables Google Sign-In
 ```
 
@@ -332,7 +328,7 @@ python -m pytest tests/ -v
 docker compose up --build
 ```
 
-The multi-stage Dockerfile builds the SvelteKit frontend (Node 22), installs Python deps, and copies the static build into the final image. FastAPI serves the SPA with a catch-all fallback to `index.html`.
+The multi-stage Dockerfile builds the SvelteKit frontend (Node 22), installs Python deps, and copies the static build into the final image. FastAPI serves the SPA with a catch-all fallback to `index.html`. Data is stored in a SQLite file at `/data/wealthwatch.db` (configurable via `SQLITE_DB_PATH`).
 
 ### Database Migrations
 

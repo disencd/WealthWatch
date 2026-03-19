@@ -8,17 +8,18 @@
 │  (SvelteKit SPA)     │     │  (FastAPI API)        │
 │                      │     │                       │
 │  - Global CDN        │     │  - Scale to zero      │
-│  - Free: 10GB/mo     │     │  - 0-3 instances      │
+│  - Free: 10GB/mo     │     │  - 1 instance max     │
 │  - Auto SSL          │     │  - CPU boost on cold  │
 │  - /api/** → proxy   │     │    start              │
 │    to Cloud Run      │     │                       │
 └─────────────────────┘     └───────────┬───────────┘
                                         │
                             ┌───────────▼──┐
-                            │ Neon/Supabase │
-                            │ PostgreSQL    │
+                            │ GCS Bucket    │
+                            │ (FUSE mount)  │
                             │               │
-                            │ FREE (0.5 GB) │
+                            │ SQLite DB     │
+                            │ FREE (5 GB)   │
                             └───────────────┘
 ```
 
@@ -26,22 +27,12 @@
 
 | Decision | Rationale |
 |---|---|
-| **Neon/Supabase free tier** | Serverless PostgreSQL, $0, auto-scales, no Cloud SQL overhead |
+| **SQLite + GCS FUSE** | Zero-config database, no external service needed, $0 |
 | **Separate frontend from API** | SPA serves from CDN (free, fast, global) — API container stays tiny |
 | **Cloud Run scale-to-zero** | $0 when idle — pay only for actual requests |
 | **Firebase Hosting rewrites** | `/api/**` proxied to Cloud Run — single domain, zero CORS |
-| **Secret Manager** | DATABASE_URL stored securely — no secrets in code or env vars |
-
-### vs. Previous Kubernetes Setup
-
-| | Kubernetes (DOKS) | Cloud Run + Neon |
-|---|---|---|
-| **Monthly cost** | ~$24 (cluster) + $15 (LB) = **$39+** | **$0** |
-| **Idle cost** | Full cluster runs 24/7 | Everything scales to zero |
-| **Ops burden** | Cluster upgrades, PVC, Ingress | Zero — fully managed |
-| **Deploy time** | ~5 min | ~30 sec |
-| **SSL** | Manual cert-manager | Automatic |
-| **DB management** | Self-hosted Pod (data loss risk) | Managed, auto-backups |
+| **Secret Manager** | JWT_SECRET stored securely — no secrets in code or env vars |
+| **max-instances=1** | SQLite requires single-writer — one instance avoids conflicts |
 
 ---
 
@@ -51,14 +42,12 @@
 |---|---|---|
 | **Cloud Run** | 2M requests, 360K GB-sec/mo | **$0** |
 | **Firebase Hosting** | 10 GB storage, 360 MB/day transfer | **$0** |
-| **Neon PostgreSQL** | 0.5 GB storage, 190 compute-hours/mo | **$0** |
+| **Cloud Storage** | 5 GB storage, 5K Class A ops/mo | **$0** |
 | **Secret Manager** | 6 active secret versions | **$0** |
 | **Artifact Registry** | 500 MB storage | **$0** |
 | **Total** | | **$0/month** |
 
-> **Neon free tier limits**: 0.5 GB storage, 190 compute-hours/month, 1 project. More than enough for a personal finance app. If you outgrow it, Neon Launch plan is $19/month.
->
-> **Supabase free tier**: 500 MB storage, 2 projects, 50K monthly active users. Also a great option.
+> **Tradeoff**: `max-instances=1` means no horizontal scaling. For a personal finance app this is fine — one instance handles ~80 concurrent requests. If you outgrow this, migrate to Cloud SQL PostgreSQL (~$9/month).
 
 ---
 
@@ -68,43 +57,31 @@
 - [Firebase CLI](https://firebase.google.com/docs/cli) (`npm install -g firebase-tools`)
 - Docker
 - A GCP project with billing enabled
-- A **Neon** or **Supabase** account (free)
+
+No external database signup needed!
 
 ---
 
 ## Quick Start
 
-### 1. Create Your Free Database
-
-**Option A — Neon (recommended):**
-1. Sign up at [neon.tech](https://neon.tech)
-2. Create a project → copy the connection string
-3. It looks like: `postgresql://user:pass@ep-cool-rain-123.us-east-2.aws.neon.tech/neondb?sslmode=require`
-
-**Option B — Supabase:**
-1. Sign up at [supabase.com](https://supabase.com)
-2. Create a project → Settings → Database → Connection string (URI)
-3. Use the **connection pooler** URI for best performance with serverless
-
-### 2. One-Time GCP Setup
+### 1. One-Time GCP Setup
 
 ```bash
 export GCP_PROJECT=your-project-id
-export DATABASE_URL="postgresql://user:pass@ep-xxx.neon.tech/neondb?sslmode=require"
 
 bash deploy/cloudrun/setup.sh
 ```
 
-This creates: Artifact Registry, secrets in Secret Manager, IAM roles.
+This creates: Artifact Registry, GCS bucket for SQLite data, JWT secret in Secret Manager, IAM roles.
 
-### 3. Deploy API
+### 2. Deploy API
 
 ```bash
 export GCP_PROJECT=your-project-id
 bash deploy/cloudrun/deploy.sh
 ```
 
-### 4. Deploy Frontend
+### 3. Deploy Frontend
 
 ```bash
 cd frontend
@@ -117,7 +94,7 @@ npx firebase-tools init hosting  # select your GCP project
 bash deploy/cloudrun/deploy-frontend.sh
 ```
 
-### 5. Update CORS
+### 4. Update CORS
 
 After deploying the frontend, update the API's allowed origins:
 
@@ -137,32 +114,20 @@ All config is via environment variables. Secrets are in Secret Manager.
 
 | Variable | Description |
 |---|---|
-| `DATABASE_URL` | Neon/Supabase connection string |
 | `JWT_SECRET` | JWT signing secret (auto-generated by setup.sh) |
 
-### Optional (set as env vars on Cloud Run)
+### Set as env vars on Cloud Run
 
 | Variable | Default | Description |
 |---|---|---|
+| `SQLITE_DB_PATH` | `/data/wealthwatch.db` | Path to SQLite database file |
 | `ALLOWED_ORIGINS` | `""` | Comma-separated CORS origins |
 
-### Using Cloud SQL Instead
+### Optional (stored in Secret Manager)
 
-If you prefer managed GCP-native PostgreSQL (~$9/month for db-f1-micro):
-
-```bash
-# Create Cloud SQL instance
-gcloud sql instances create wealthwatch-pg \
-  --database-version=POSTGRES_15 --tier=db-f1-micro \
-  --region=us-central1 --project=your-project
-
-# Set CLOUD_SQL_CONNECTION_NAME instead of DATABASE_URL
-gcloud run deploy wealthwatch-api \
-  --add-cloudsql-instances=project:region:instance \
-  --set-env-vars="CLOUD_SQL_CONNECTION_NAME=project:region:instance,DB_USER=...,DB_NAME=..." \
-  --set-secrets="DB_PASSWORD=wealthwatch-db-password:latest,JWT_SECRET=wealthwatch-jwt-secret:latest" \
-  ...
-```
+| Variable | Description |
+|---|---|
+| `GOOGLE_CLIENT_ID` | Google OAuth Client ID (enables Google Sign-In) |
 
 ---
 
@@ -173,15 +138,15 @@ Nothing changes for local development:
 ```bash
 docker compose up --build            # full stack (original Dockerfile)
 # or
-uvicorn app.main:app --reload        # backend only
+uvicorn app.main:app --reload        # backend only (SQLite at ./wealthwatch.db)
 cd frontend && npm run dev           # frontend dev server with HMR
 ```
 
-To test with Neon locally, just set `DATABASE_URL` in your `.env`:
+Create a `.env` file:
 
 ```env
-DATABASE_URL=postgresql://user:pass@ep-xxx.neon.tech/neondb?sslmode=require
 JWT_SECRET=dev-secret
+SQLITE_DB_PATH=wealthwatch.db
 ```
 
 ---
@@ -191,7 +156,7 @@ JWT_SECRET=dev-secret
 The `.github/workflows/deploy-cloudrun.yml` workflow:
 
 1. **Test** — runs pytest
-2. **Deploy API** — builds image, pushes to Artifact Registry, deploys to Cloud Run
+2. **Deploy API** — builds image, pushes to Artifact Registry, deploys to Cloud Run with GCS volume mount
 3. **Deploy Frontend** — builds SvelteKit, deploys to Firebase Hosting
 
 ### Required GitHub Secrets/Variables
@@ -231,24 +196,19 @@ gcloud iam service-accounts add-iam-policy-binding \
 
 ## How It Works
 
-### Database Connection Flow
+### Database Architecture
 
 ```
-Cloud Run container
-  └─ app/config.py reads DATABASE_URL from Secret Manager
-      └─ Detects sslmode=require → enables SSL for asyncpg
-          └─ Strips sslmode from URL (asyncpg uses connect_args)
-              └─ SQLAlchemy engine with pool_size=5, pool_recycle=300s
-                  └─ Connects to Neon/Supabase over TLS
+Cloud Run container (gen2)
+  └─ /data/ mounted via GCS FUSE → gs://{project}-wealthwatch-data/
+      └─ wealthwatch.db (SQLite with WAL mode)
+          └─ SQLAlchemy async engine (aiosqlite)
 ```
 
-### Connection Pool Tuning
-
-Neon and Supabase close idle connections aggressively. The engine is configured:
-- `pool_size=5` — small pool (Cloud Run instances scale horizontally)
-- `max_overflow=2` — at most 7 concurrent connections per instance
-- `pool_recycle=300` — recycle connections every 5 min (before Neon's idle timeout)
-- `pool_pre_ping=True` — verify connections before use
+- **WAL mode**: Enables concurrent readers while writing
+- **Foreign keys ON**: SQLite doesn't enforce FK constraints by default — we enable them
+- **busy_timeout=5000**: Wait up to 5s for write locks instead of failing immediately
+- **max-instances=1**: Ensures only one Cloud Run instance writes to the SQLite file
 
 ### Firebase Hosting Routing
 
@@ -267,13 +227,13 @@ Browser → Firebase Hosting CDN
 ```
 wealthwatch/
 ├── app/
-│   ├── config.py           ← DATABASE_URL, SSL detection, CORS
-│   ├── database.py         ← SSL connect_args, pool tuning for Neon
-│   └── main.py             ← Lifespan, health check with DB ping
+│   ├── config.py           ← SQLITE_DB_PATH, JWT, CORS settings
+│   ├── database.py         ← SQLite engine with WAL mode, FK enforcement
+│   └── main.py             ← Lifespan, health check
 ├── deploy/
 │   └── cloudrun/
-│       ├── setup.sh        ← One-time GCP setup (no Cloud SQL)
-│       ├── deploy.sh       ← Build & deploy API to Cloud Run
+│       ├── setup.sh        ← One-time GCP setup (GCS bucket, secrets)
+│       ├── deploy.sh       ← Build & deploy API with GCS volume mount
 │       ├── deploy-frontend.sh  ← Build & deploy SPA to Firebase
 │       └── firebase.json   ← Hosting config with API proxy rewrites
 ├── Dockerfile              ← Original (monolithic, docker-compose)
@@ -292,10 +252,28 @@ wealthwatch/
 
 1. **Min instances = 0** (default): Scale to zero when idle. Set `--min-instances=1` if you want instant response with no cold starts (~$6/month extra).
 
-2. **Max instances = 3**: Keeps costs bounded. One instance handles ~80 concurrent requests.
+2. **Max instances = 1**: Required for SQLite single-writer constraint. If you need horizontal scaling, migrate to Cloud SQL PostgreSQL.
 
 3. **CPU boost**: Enabled by default — reduces cold start from ~3s to ~1s.
 
-4. **Neon auto-suspend**: Neon free tier suspends compute after 5 min of inactivity and resumes in ~0.5s. First request after suspend adds ~500ms latency.
+4. **GCS FUSE caching**: Cloud Run gen2 uses a local file cache for GCS FUSE, improving read performance after the first access.
 
 5. **Firebase CDN**: Static assets never hit Cloud Run — served from Google's edge network globally.
+
+---
+
+## Backup & Restore
+
+The SQLite database lives in a GCS bucket. To back up or restore:
+
+```bash
+BUCKET="${GCP_PROJECT}-wealthwatch-data"
+
+# Download a backup
+gcloud storage cp "gs://$BUCKET/wealthwatch.db" ./backup.db
+
+# Upload a restore (stop the service first)
+gcloud run services update wealthwatch-api --min-instances=0 --max-instances=0
+gcloud storage cp ./backup.db "gs://$BUCKET/wealthwatch.db"
+gcloud run services update wealthwatch-api --min-instances=0 --max-instances=1
+```

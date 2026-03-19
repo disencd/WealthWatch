@@ -44,8 +44,6 @@ jobs:
         run: python -m pytest tests/ -v --tb=short
         env:
           JWT_SECRET: ci-test-secret
-          DB_HOST: localhost
-          DB_PASSWORD: test
 
   deploy-api:
     name: Deploy API to Cloud Run
@@ -79,26 +77,32 @@ jobs:
           echo "IMAGE_TAG=$TAG" >> "$GITHUB_ENV"
 
       - name: Deploy to Cloud Run
+        env:
+          BUCKET: ${{ env.GCP_PROJECT }}-wealthwatch-data
         run: |
           gcloud run deploy "$SERVICE" \
             --image="$IMAGE_TAG" \
             --region="$GCP_REGION" \
             --project="$GCP_PROJECT" \
             --platform=managed \
+            --execution-environment=gen2 \
             --allow-unauthenticated \
             --port=8080 \
             --cpu=1 \
             --memory=512Mi \
             --min-instances=0 \
-            --max-instances=3 \
+            --max-instances=1 \
             --concurrency=80 \
             --timeout=60 \
             --cpu-boost \
-            --set-env-vars="ALLOWED_ORIGINS=${{ vars.ALLOWED_ORIGINS }}" \
+            --set-env-vars="\
+          ALLOWED_ORIGINS=${{ vars.ALLOWED_ORIGINS }},\
+          SQLITE_DB_PATH=/data/wealthwatch.db" \
             --set-secrets="\
-          DATABASE_URL=wealthwatch-database-url:latest,\
           JWT_SECRET=wealthwatch-jwt-secret:latest,\
-          GOOGLE_CLIENT_ID=wealthwatch-google-client-id:latest"
+          GOOGLE_CLIENT_ID=wealthwatch-google-client-id:latest" \
+            --add-volume=name=sqlite-data,type=cloud-storage,bucket="$BUCKET" \
+            --add-volume-mount=volume=sqlite-data,mount-path=/data
 
       - name: Verify deployment
         run: |
