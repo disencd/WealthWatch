@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Family - WealthWatch{% endblock %}
+{% block page_title %}Family / Partner{% endblock %}
+
+{% block content %}
+<div x-data="familyPage()" x-init="load()">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Family Members</h1>
+      <p class="text-sm text-gray-500 mt-1">Manage your family group and invite partners</p>
+    </div>
+    <button @click="showInvite = true"
+            class="inline-flex items-center px-4 py-2.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition shadow-sm">
+      <i class="fas fa-user-plus mr-2"></i>Invite Partner
+    </button>
+  </div>
+
+  <!-- Error Alert -->
+  <div x-show="error" x-cloak
+       class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center justify-between">
+    <span x-text="error"></span>
+    <button @click="error=''" class="text-red-500 hover:text-red-700"><i class="fas fa-times"></i></button>
+  </div>
+
+  <!-- Success Alert -->
+  <div x-show="success" x-cloak
+       class="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm flex items-center justify-between">
+    <span x-text="success"></span>
+    <button @click="success=''" class="text-green-500 hover:text-green-700"><i class="fas fa-times"></i></button>
+  </div>
+
+  <!-- Loading -->
+  <div x-show="loading" class="flex justify-center py-12">
+    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
+  </div>
+
+  <!-- Members List -->
+  <div x-show="!loading" x-cloak class="space-y-3">
+    <template x-for="m in members" :key="m.id">
+      <div class="bg-white rounded-xl shadow-sm border p-5 flex items-center justify-between hover:shadow-md transition">
+        <div class="flex items-center space-x-4">
+          <!-- Avatar (initials circle) -->
+          <div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm"
+               :class="m.role === 'superadmin' ? 'bg-brand-600' : m.role === 'admin' ? 'bg-amber-500' : 'bg-gray-400'"
+               x-text="initials(m.user.first_name, m.user.last_name)">
+          </div>
+          <div>
+            <p class="font-semibold text-gray-900" x-text="m.user.first_name + ' ' + m.user.last_name"></p>
+            <p class="text-sm text-gray-500" x-text="m.user.email"></p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-3">
+          <!-- Role Badge -->
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
+                :class="m.role === 'superadmin' ? 'bg-brand-100 text-brand-700' : m.role === 'admin' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'"
+                x-text="m.role">
+          </span>
+          <!-- Status -->
+          <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
+                :class="m.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'"
+                x-text="m.status">
+          </span>
+        </div>
+      </div>
+    </template>
+
+    <!-- Empty State -->
+    <div x-show="members.length === 0" class="text-center py-16 bg-white rounded-xl border shadow-sm">
+      <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-users text-gray-400 text-2xl"></i>
+      </div>
+      <p class="text-gray-500 font-medium">No family members yet</p>
+      <p class="text-sm text-gray-400 mt-1">Invite your partner or family members to get started</p>
+    </div>
+  </div>
+
+  <!-- Invite Modal -->
+  <div x-show="showInvite" x-cloak class="fixed inset-0 z-50 flex items-center justify-center">
+    <!-- Overlay -->
+    <div class="absolute inset-0 bg-black/50" @click="showInvite = false"></div>
+    <!-- Modal -->
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6" @click.stop>
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-lg font-bold text-gray-900">Invite Partner</h3>
+        <button @click="showInvite = false" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-lg"></i>
+        </button>
+      </div>
+      <form @submit.prevent="invite()">
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+          <input type="email" x-model="form.email" required placeholder="partner@example.com"
+                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500">
+        </div>
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+          <select x-model="form.role"
+                  class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white">
+            <option value="member">Member</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="flex space-x-3">
+          <button type="button" @click="showInvite = false"
+                  class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition">
+            Cancel
+          </button>
+          <button type="submit" :disabled="submitting"
+                  class="flex-1 px-4 py-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium text-sm transition disabled:opacity-50">
+            <span x-show="!submitting">Send Invite</span>
+            <span x-show="submitting"><i class="fas fa-spinner fa-spin mr-1"></i>Sending...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function familyPage() {
+  const token = localStorage.getItem('token');
+  const headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'};
+  const api = async (method, path, body) => {
+    const opts = {method, headers};
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch('/api/v1' + path, opts);
+    if (res.status === 401) { window.location.href = '/login'; return null; }
+    if (res.status === 204) return null;
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail || 'Failed'); }
+    return res.json();
+  };
+
+  return {
+    members: [],
+    loading: true,
+    error: '',
+    success: '',
+    showInvite: false,
+    submitting: false,
+    form: { email: '', role: 'member' },
+
+    initials(first, last) {
+      return ((first || '')[0] || '') .toUpperCase() + ((last || '')[0] || '').toUpperCase();
+    },
+
+    async load() {
+      try {
+        this.members = await api('GET', '/families/members') || [];
+      } catch (e) {
+        this.error = e.message;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async invite() {
+      this.submitting = true;
+      this.error = '';
+      try {
+        await api('POST', '/families/members', { email: this.form.email, role: this.form.role });
+        this.success = 'Member invited successfully!';
+        this.showInvite = false;
+        this.form = { email: '', role: 'member' };
+        await this.load();
+      } catch (e) {
+        this.error = e.message;
+      } finally {
+        this.submitting = false;
+      }
+    }
+  };
+}
+</script>
+{% endblock %}

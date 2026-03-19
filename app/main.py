@@ -4,7 +4,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,6 +25,7 @@ from app.routers import (
     reports,
     rules,
     settlements,
+    ui,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -78,30 +78,13 @@ app.include_router(groups.router)
 app.include_router(balances.router)
 app.include_router(settlements.router)
 
-# Serve SvelteKit SPA (only when web/ dir exists — skipped on Cloud Run API-only deploy)
-WEB_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "web")
-if os.path.isdir(WEB_DIR):
-    app.mount("/_app", StaticFiles(directory=os.path.join(WEB_DIR, "_app")), name="svelte-assets")
+# Serve static assets (CSS, JS)
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+if os.path.isdir(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-    @app.get("/{full_path:path}", include_in_schema=False)
-    async def spa_fallback(full_path: str):
-        # Try to serve static file first
-        file_path = os.path.realpath(os.path.join(WEB_DIR, full_path))
-        # Prevent path traversal
-        if not file_path.startswith(os.path.realpath(WEB_DIR)):
-            raise HTTPException(403, "Forbidden")
-        if full_path and os.path.isfile(file_path):
-            import mimetypes
-
-            mt, _ = mimetypes.guess_type(file_path)
-            with open(file_path, "rb") as f:
-                from fastapi.responses import Response
-
-                return Response(content=f.read(), media_type=mt or "application/octet-stream")
-        # Fall back to index.html for SPA client-side routing
-        index_path = os.path.join(WEB_DIR, "index.html")
-        with open(index_path) as f:
-            return HTMLResponse(content=f.read())
+# UI pages (Alpine.js + Jinja2 templates) — must be registered after API routers
+app.include_router(ui.router)
 
 
 @app.get("/api/v1/profile", tags=["auth"])

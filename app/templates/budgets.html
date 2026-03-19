@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+{% block title %}Budgets{% endblock %}
+{% block content %}
+<div x-data="budgetsPage()" x-init="load()" class="space-y-6">
+
+  <!-- Header Row -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Budgets</h1>
+      <p class="text-sm text-gray-500 mt-1">Track spending against your budget limits</p>
+    </div>
+    <button @click="showSetModal = true"
+            class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-lg hover:bg-indigo-700 text-sm font-medium shadow-sm transition">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+      Set Budget
+    </button>
+  </div>
+
+  <!-- Month Navigation -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+    <div class="flex items-center justify-between">
+      <button @click="prevMonth()"
+              class="inline-flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+        Previous
+      </button>
+      <div class="text-center">
+        <h2 class="text-lg font-semibold text-gray-900" x-text="monthLabel"></h2>
+        <p class="text-xs text-gray-500 mt-0.5">
+          Total spent: <span class="font-medium text-gray-700" x-text="money(totalSpent)"></span>
+        </p>
+      </div>
+      <button @click="nextMonth()"
+              class="inline-flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition">
+        Next
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div x-show="loading" class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center text-gray-400">
+    <svg class="animate-spin h-8 w-8 mx-auto mb-3 text-indigo-500" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+    </svg>
+    Loading budgets...
+  </div>
+
+  <!-- Empty State -->
+  <div x-show="!loading && mergedCards.length === 0" class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+    <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/></svg>
+    <p class="text-gray-500 font-medium">No budgets for this month</p>
+    <p class="text-gray-400 text-sm mt-1">Set a budget to start tracking your spending</p>
+  </div>
+
+  <!-- Budget Cards Grid -->
+  <div x-show="!loading && mergedCards.length > 0"
+       class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+    <template x-for="card in mergedCards" :key="card.key">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
+        <!-- Card Header -->
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <h3 class="font-semibold text-gray-900" x-text="card.categoryName"></h3>
+            <span x-show="card.hasBudget"
+                  class="inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                  :class="card.pct > 100 ? 'bg-red-50 text-red-700' : 'bg-indigo-50 text-indigo-700'"
+                  x-text="card.period"></span>
+            <span x-show="!card.hasBudget"
+                  class="inline-flex items-center mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+              No budget set
+            </span>
+          </div>
+          <div class="text-right">
+            <p class="text-xs text-gray-500" x-show="card.hasBudget">Budget</p>
+            <p class="text-sm font-semibold text-gray-900" x-show="card.hasBudget" x-text="money(card.limit)"></p>
+          </div>
+        </div>
+
+        <!-- Spent / Limit -->
+        <div class="flex items-baseline justify-between mb-2">
+          <p class="text-sm text-gray-600">
+            <span class="font-semibold" :class="card.pct > 100 ? 'text-red-600' : 'text-gray-900'" x-text="money(card.spent)"></span>
+            <span x-show="card.hasBudget"> / <span x-text="money(card.limit)"></span></span>
+          </p>
+          <p x-show="card.hasBudget" class="text-sm font-semibold"
+             :class="card.pct > 100 ? 'text-red-600' : 'text-indigo-600'"
+             x-text="card.pct.toFixed(0) + '%'"></p>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+          <div class="h-2.5 rounded-full transition-all duration-500"
+               :class="card.pct > 100 ? 'bg-red-500' : 'bg-indigo-500'"
+               :style="'width:' + Math.min(card.pct, 100) + '%'"></div>
+        </div>
+
+        <!-- Remaining / Over -->
+        <div class="mt-2" x-show="card.hasBudget">
+          <p x-show="card.pct <= 100" class="text-xs text-gray-500">
+            <span x-text="money(card.limit - card.spent)"></span> remaining
+          </p>
+          <p x-show="card.pct > 100" class="text-xs text-red-600 font-medium">
+            <span x-text="money(card.spent - card.limit)"></span> over budget
+          </p>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- Set Budget Modal -->
+  <div x-show="showSetModal" x-cloak
+       class="fixed inset-0 z-50 flex items-center justify-center p-4"
+       @keydown.escape.window="showSetModal = false">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/40" @click="showSetModal = false"></div>
+    <!-- Panel -->
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+         @click.stop>
+      <!-- Header -->
+      <div class="flex items-center justify-between p-5 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">Set Budget</h3>
+        <button @click="showSetModal = false" class="text-gray-400 hover:text-gray-600 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <!-- Body -->
+      <form @submit.prevent="createBudget()" class="p-5 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Category <span class="text-red-500">*</span></label>
+          <select x-model="form.category_id" required
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            <option value="" disabled>Select category</option>
+            <template x-for="c in categories" :key="c.id">
+              <option :value="c.id" x-text="c.name"></option>
+            </template>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Period <span class="text-red-500">*</span></label>
+          <select x-model="form.period" required
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Amount <span class="text-red-500">*</span></label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+            <input type="number" step="0.01" min="0" x-model="form.amount" required
+                   class="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                   placeholder="0.00">
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div x-show="formError" class="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm p-3" x-text="formError"></div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button type="button" @click="showSetModal = false"
+                  class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+            Cancel
+          </button>
+          <button type="submit" :disabled="saving"
+                  class="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition">
+            <span x-show="!saving">Save Budget</span>
+            <span x-show="saving">Saving...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function budgetsPage() {
+  const token = localStorage.getItem('token');
+  const headers = {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'};
+  const api = async (method, path, body) => {
+    const opts = {method, headers};
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch('/api/v1' + path, opts);
+    if (res.status === 401) { window.location.href = '/login'; return null; }
+    if (res.status === 204) return null;
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail || 'Failed'); }
+    return res.json();
+  };
+  const money = (n) => '$' + (Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  return {
+    /* state */
+    loading: false,
+    saving: false,
+    showSetModal: false,
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+    budgets: [],
+    summary: null,
+    categories: [],
+    totalSpent: 0,
+    form: { category_id:'', period:'monthly', amount:'' },
+    formError: '',
+
+    /* computed */
+    get monthLabel() {
+      return MONTH_NAMES[this.month - 1] + ' ' + this.year;
+    },
+
+    get mergedCards() {
+      const map = {};
+
+      /* Start with budget entries */
+      for (const b of this.budgets) {
+        const catId = b.category_id;
+        const catName = b.category ? b.category.name : ('Category #' + catId);
+        map[catId] = {
+          key: 'budget-' + catId,
+          categoryId: catId,
+          categoryName: catName,
+          limit: Number(b.amount) || 0,
+          spent: 0,
+          pct: 0,
+          hasBudget: true,
+          period: b.period,
+        };
+      }
+
+      /* Merge spending data */
+      if (this.summary && this.summary.by_category) {
+        for (const cat of this.summary.by_category) {
+          if (map[cat.category_id]) {
+            map[cat.category_id].spent = cat.total_amount;
+            const lim = map[cat.category_id].limit;
+            map[cat.category_id].pct = lim > 0 ? (cat.total_amount / lim) * 100 : 0;
+          } else {
+            /* Spending exists but no budget set */
+            map[cat.category_id] = {
+              key: 'spend-' + cat.category_id,
+              categoryId: cat.category_id,
+              categoryName: cat.category_name,
+              limit: 0,
+              spent: cat.total_amount,
+              pct: 0,
+              hasBudget: false,
+              period: '',
+            };
+          }
+        }
+      }
+
+      /* Sort: budgets with overspending first, then by spent desc */
+      return Object.values(map).sort((a, b) => {
+        if (a.pct > 100 && b.pct <= 100) return -1;
+        if (b.pct > 100 && a.pct <= 100) return 1;
+        return b.spent - a.spent;
+      });
+    },
+
+    /* helpers */
+    money,
+    fmtDate,
+
+    /* navigation */
+    prevMonth() {
+      this.month--;
+      if (this.month < 1) { this.month = 12; this.year--; }
+      this.fetchAll();
+    },
+    nextMonth() {
+      this.month++;
+      if (this.month > 12) { this.month = 1; this.year++; }
+      this.fetchAll();
+    },
+
+    /* loaders */
+    async load() {
+      await this.fetchCategories();
+      await this.fetchAll();
+    },
+
+    async fetchCategories() {
+      try { this.categories = await api('GET', '/budget/categories') || []; } catch {}
+    },
+
+    async fetchAll() {
+      this.loading = true;
+      try {
+        const [budgets, summary] = await Promise.all([
+          api('GET', '/budget/budgets?year=' + this.year + '&month=' + this.month),
+          api('GET', '/budget/summary/monthly?year=' + this.year + '&month=' + this.month),
+        ]);
+        this.budgets = budgets || [];
+        this.summary = summary || null;
+        this.totalSpent = summary ? summary.total_spent : 0;
+      } catch {
+        this.budgets = [];
+        this.summary = null;
+        this.totalSpent = 0;
+      }
+      this.loading = false;
+    },
+
+    /* create */
+    async createBudget() {
+      this.formError = '';
+      this.saving = true;
+      try {
+        const body = {
+          category_id: Number(this.form.category_id),
+          period: this.form.period,
+          year: this.year,
+          month: this.form.period === 'monthly' ? this.month : null,
+          amount: Number(this.form.amount),
+        };
+        await api('POST', '/budget/budgets', body);
+        this.showSetModal = false;
+        this.form = { category_id:'', period:'monthly', amount:'' };
+        await this.fetchAll();
+      } catch (err) {
+        this.formError = err.message || 'Failed to create budget';
+      }
+      this.saving = false;
+    },
+  };
+}
+</script>
+{% endblock %}

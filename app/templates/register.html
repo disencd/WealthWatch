@@ -1,0 +1,179 @@
+{% extends "base_auth.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-md w-full space-y-8">
+    <!-- Branding -->
+    <div class="text-center">
+      <h1 class="text-4xl font-extrabold text-indigo-600 tracking-tight">WealthWatch</h1>
+      <p class="mt-2 text-sm text-gray-600">Create your account</p>
+    </div>
+
+    <!-- Register Card -->
+    <div class="bg-white shadow-lg rounded-xl p-8"
+         x-data="{
+           firstName: '',
+           lastName: '',
+           email: '',
+           password: '',
+           error: '',
+           loading: false,
+           async submit() {
+             this.loading = true;
+             this.error = '';
+             if (this.password.length < 6) {
+               this.error = 'Password must be at least 6 characters';
+               this.loading = false;
+               return;
+             }
+             try {
+               const res = await fetch('/api/v1/auth/register', {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({
+                   first_name: this.firstName,
+                   last_name: this.lastName,
+                   email: this.email,
+                   password: this.password
+                 })
+               });
+               const data = await res.json();
+               if (!res.ok) throw new Error(data.detail || 'Registration failed');
+               this.setAuth(data.access_token, data.user);
+               window.location.href = '/dashboard';
+             } catch (e) {
+               this.error = e.message;
+             } finally {
+               this.loading = false;
+             }
+           },
+           handleGoogleCallback(response) {
+             fetch('/api/v1/auth/google', {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ credential: response.credential })
+             })
+               .then(r => r.json())
+               .then(data => {
+                 if (data.access_token) {
+                   this.setAuth(data.access_token, data.user);
+                   window.location.href = '/dashboard';
+                 }
+               })
+               .catch(e => { this.error = e.message; });
+           }
+         }">
+
+      <!-- Error Message -->
+      <div x-show="error" x-cloak
+           class="mb-4 rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700 flex items-center gap-2">
+        <svg class="h-5 w-5 flex-shrink-0 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+        </svg>
+        <span x-text="error"></span>
+      </div>
+
+      <!-- Form -->
+      <form @submit.prevent="submit" class="space-y-5">
+        <!-- Name Fields (side by side) -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">First name</label>
+            <input id="firstName" type="text" required autocomplete="given-name"
+                   x-model="firstName"
+                   class="block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 sm:text-sm"
+                   placeholder="John">
+          </div>
+          <div>
+            <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">Last name</label>
+            <input id="lastName" type="text" required autocomplete="family-name"
+                   x-model="lastName"
+                   class="block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 sm:text-sm"
+                   placeholder="Doe">
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email address</label>
+          <input id="email" type="email" required autocomplete="email"
+                 x-model="email"
+                 class="block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 sm:text-sm"
+                 placeholder="you@example.com">
+        </div>
+
+        <!-- Password -->
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+          <input id="password" type="password" required minlength="6" autocomplete="new-password"
+                 x-model="password"
+                 class="block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 sm:text-sm"
+                 placeholder="••••••••">
+          <p class="mt-1 text-xs text-gray-500">Must be at least 6 characters</p>
+        </div>
+
+        <!-- Create Account Button -->
+        <button type="submit"
+                :disabled="loading"
+                class="w-full flex justify-center items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+          <svg x-show="loading" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <span x-text="loading ? 'Creating account...' : 'Create Account'"></span>
+        </button>
+      </form>
+
+      <!-- Divider & Google Sign-Up (only if google_client_id is set) -->
+      {% if google_client_id %}
+      <div class="relative my-6">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-gray-200"></div>
+        </div>
+        <div class="relative flex justify-center text-sm">
+          <span class="bg-white px-4 text-gray-500">Or continue with</span>
+        </div>
+      </div>
+
+      <!-- Google Sign-Up Button -->
+      <div>
+        <div id="g_id_onload"
+             data-client_id="{{ google_client_id }}"
+             data-callback="handleGoogleCallback"
+             data-auto_prompt="false">
+        </div>
+        <div class="flex justify-center">
+          <div id="google-signup-btn"
+               class="g_id_signin"
+               data-type="standard"
+               data-shape="rectangular"
+               data-theme="outline"
+               data-text="signup_with"
+               data-size="large"
+               data-logo_alignment="left"
+               data-width="360">
+          </div>
+        </div>
+      </div>
+
+      <script src="https://accounts.google.com/gsi/client" async defer></script>
+      <script>
+        // Bridge the Google callback into the Alpine.js component scope
+        function handleGoogleCallback(response) {
+          const el = document.querySelector('[x-data]');
+          if (el && el._x_dataStack) {
+            el._x_dataStack[0].handleGoogleCallback(response);
+          }
+        }
+      </script>
+      {% endif %}
+
+      <!-- Login Link -->
+      <p class="mt-6 text-center text-sm text-gray-600">
+        Already have an account?
+        <a href="/login" class="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors">Sign in</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
