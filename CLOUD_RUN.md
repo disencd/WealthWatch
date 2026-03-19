@@ -3,24 +3,24 @@
 ## Architecture ($0/month)
 
 ```
-┌─────────────────────┐     ┌──────────────────────┐
-│  Firebase Hosting    │────▶│  Google Cloud Run     │
-│  (SvelteKit SPA)     │     │  (FastAPI API)        │
-│                      │     │                       │
-│  - Global CDN        │     │  - Scale to zero      │
-│  - Free: 10GB/mo     │     │  - 1 instance max     │
-│  - Auto SSL          │     │  - CPU boost on cold  │
-│  - /api/** → proxy   │     │    start              │
-│    to Cloud Run      │     │                       │
-└─────────────────────┘     └───────────┬───────────┘
-                                        │
-                            ┌───────────▼──┐
-                            │ GCS Bucket    │
-                            │ (FUSE mount)  │
-                            │               │
-                            │ SQLite DB     │
-                            │ FREE (5 GB)   │
-                            └───────────────┘
+┌───────────────────────────────────┐
+│  Google Cloud Run                 │
+│  (FastAPI + SvelteKit SPA)        │
+│                                   │
+│  - Single container               │
+│  - Scale to zero                  │
+│  - 1 instance max                 │
+│  - CPU boost on cold start        │
+│  - Auto SSL                       │
+└───────────────┬───────────────────┘
+                │
+    ┌───────────▼──┐
+    │ GCS Bucket    │
+    │ (FUSE mount)  │
+    │               │
+    │ SQLite DB     │
+    │ FREE (5 GB)   │
+    └───────────────┘
 ```
 
 ### Why this design?
@@ -28,9 +28,8 @@
 | Decision | Rationale |
 |---|---|
 | **SQLite + GCS FUSE** | Zero-config database, no external service needed, $0 |
-| **Separate frontend from API** | SPA serves from CDN (free, fast, global) — API container stays tiny |
+| **Single container** | Frontend bundled into the API image — one service to manage |
 | **Cloud Run scale-to-zero** | $0 when idle — pay only for actual requests |
-| **Firebase Hosting rewrites** | `/api/**` proxied to Cloud Run — single domain, zero CORS |
 | **Secret Manager** | JWT_SECRET stored securely — no secrets in code or env vars |
 | **max-instances=1** | SQLite requires single-writer — one instance avoids conflicts |
 
@@ -41,7 +40,6 @@
 | Service | Free Tier | Your Cost |
 |---|---|---|
 | **Cloud Run** | 2M requests, 360K GB-sec/mo | **$0** |
-| **Firebase Hosting** | 10 GB storage, 360 MB/day transfer | **$0** |
 | **Cloud Storage** | 5 GB storage, 5K Class A ops/mo | **$0** |
 | **Secret Manager** | 6 active secret versions | **$0** |
 | **Artifact Registry** | 500 MB storage | **$0** |
@@ -54,7 +52,6 @@
 ## Prerequisites
 
 - [Google Cloud SDK](https://cloud.google.com/sdk/install) (`gcloud`)
-- [Firebase CLI](https://firebase.google.com/docs/cli) (`npm install -g firebase-tools`)
 - Docker
 - A GCP project with billing enabled
 
@@ -74,33 +71,20 @@ bash deploy/cloudrun/setup.sh
 
 This creates: Artifact Registry, GCS bucket for SQLite data, JWT secret in Secret Manager, IAM roles.
 
-### 2. Deploy API
+### 2. Deploy
 
 ```bash
 export GCP_PROJECT=your-project-id
 bash deploy/cloudrun/deploy.sh
 ```
 
-### 3. Deploy Frontend
+### 3. Update CORS (if needed)
 
-```bash
-cd frontend
-
-# Initialize Firebase (first time only)
-npx firebase-tools login
-npx firebase-tools init hosting  # select your GCP project
-
-# Deploy
-bash deploy/cloudrun/deploy-frontend.sh
-```
-
-### 4. Update CORS
-
-After deploying the frontend, update the API's allowed origins:
+If your frontend is accessed from a different origin, update the allowed origins:
 
 ```bash
 gcloud run services update wealthwatch-api \
-  --update-env-vars ALLOWED_ORIGINS=https://your-project.web.app \
+  --update-env-vars ALLOWED_ORIGINS=https://your-domain.com \
   --region us-central1 --project your-project-id
 ```
 
@@ -136,7 +120,7 @@ All config is via environment variables. Secrets are in Secret Manager.
 Nothing changes for local development:
 
 ```bash
-docker compose up --build            # full stack (original Dockerfile)
+docker compose up --build            # full stack
 # or
 uvicorn app.main:app --reload        # backend only (SQLite at ./wealthwatch.db)
 cd frontend && npm run dev           # frontend dev server with HMR
@@ -153,11 +137,22 @@ SQLITE_DB_PATH=wealthwatch.db
 
 ## CI/CD
 
+### GitLab CI/CD
+
+The `.gitlab-ci.yml` pipeline:
+
+1. **Test** — ruff lint/format, compile check, pytest
+2. **Build** — builds full-stack Docker image, pushes to Artifact Registry
+3. **Deploy** — deploys to Cloud Run with GCS volume mount
+
+See the [README](README.md#gitlab-cicd) for required CI/CD variables.
+
+### GitHub Actions
+
 The `.github/workflows/deploy-cloudrun.yml` workflow:
 
 1. **Test** — runs pytest
-2. **Deploy API** — builds image, pushes to Artifact Registry, deploys to Cloud Run with GCS volume mount
-3. **Deploy Frontend** — builds SvelteKit, deploys to Firebase Hosting
+2. **Deploy** — builds image, pushes to Artifact Registry, deploys to Cloud Run with GCS volume mount
 
 ### Required GitHub Secrets/Variables
 
@@ -165,10 +160,10 @@ The `.github/workflows/deploy-cloudrun.yml` workflow:
 |---|---|---|
 | `GCP_PROJECT` | variable | GCP project ID |
 | `GCP_REGION` | variable | Region (default: `us-central1`) |
-| `ALLOWED_ORIGINS` | variable | Firebase Hosting URL |
+| `ALLOWED_ORIGINS` | variable | Allowed CORS origins |
+| `GOOGLE_CLIENT_ID` | variable | Google OAuth client ID (optional) |
 | `WIF_PROVIDER` | secret | Workload Identity Federation provider |
 | `WIF_SERVICE_ACCOUNT` | secret | WIF service account email |
-| `FIREBASE_SERVICE_ACCOUNT` | secret | Firebase service account JSON |
 
 ### Setting up Workload Identity Federation
 
@@ -210,13 +205,13 @@ Cloud Run container (gen2)
 - **busy_timeout=5000**: Wait up to 5s for write locks instead of failing immediately
 - **max-instances=1**: Ensures only one Cloud Run instance writes to the SQLite file
 
-### Firebase Hosting Routing
+### Request Routing
 
 ```
-Browser → Firebase Hosting CDN
-  ├── /_app/**          → cached static assets (1 year, immutable)
-  ├── /api/**           → proxied to Cloud Run service
-  ├── /health           → proxied to Cloud Run service
+Browser → Cloud Run
+  ├── /api/**           → FastAPI routers
+  ├── /health           → Health check endpoint
+  ├── /_app/**          → SvelteKit static assets (hashed, immutable)
   └── everything else   → index.html (SPA client-side routing)
 ```
 
@@ -229,21 +224,19 @@ wealthwatch/
 ├── app/
 │   ├── config.py           ← SQLITE_DB_PATH, JWT, CORS settings
 │   ├── database.py         ← SQLite engine with WAL mode, FK enforcement
-│   └── main.py             ← Lifespan, health check
+│   └── main.py             ← Lifespan, health check, SPA serving
 ├── deploy/
 │   └── cloudrun/
 │       ├── setup.sh        ← One-time GCP setup (GCS bucket, secrets)
-│       ├── deploy.sh       ← Build & deploy API with GCS volume mount
-│       ├── deploy-frontend.sh  ← Build & deploy SPA to Firebase
-│       └── firebase.json   ← Hosting config with API proxy rewrites
-├── Dockerfile              ← Original (monolithic, docker-compose)
-├── Dockerfile.cloudrun     ← API-only, optimized for Cloud Run
+│       └── deploy.sh       ← Build & deploy to Cloud Run
+├── Dockerfile              ← Multi-stage build (Node + Python)
 ├── .dockerignore           ← Keeps images small
 ├── requirements.txt        ← Production deps (pinned)
-├── requirements-dev.txt    ← Test deps (pytest, alembic)
+├── requirements-dev.txt    ← Test deps (pytest, ruff)
+├── .gitlab-ci.yml          ← GitLab CI/CD pipeline
 └── .github/workflows/
     ├── ci.yml              ← Existing CI
-    └── deploy-cloudrun.yml ← Cloud Run + Firebase deploy
+    └── deploy-cloudrun.yml ← Cloud Run deploy
 ```
 
 ---
@@ -257,8 +250,6 @@ wealthwatch/
 3. **CPU boost**: Enabled by default — reduces cold start from ~3s to ~1s.
 
 4. **GCS FUSE caching**: Cloud Run gen2 uses a local file cache for GCS FUSE, improving read performance after the first access.
-
-5. **Firebase CDN**: Static assets never hit Cloud Run — served from Google's edge network globally.
 
 ---
 

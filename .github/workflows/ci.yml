@@ -53,6 +53,5 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: Dockerfile.cloudrun
           push: false
           tags: wealthwatch-api:ci

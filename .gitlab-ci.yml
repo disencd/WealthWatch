@@ -1,0 +1,99 @@
+# ─────────────────────────────────────────────────────────────────────
+# WealthWatch — GitLab CI/CD Pipeline
+# Deploys full-stack image (API + frontend) to Google Cloud Run
+# ─────────────────────────────────────────────────────────────────────
+
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  GCP_REGION: us-central1
+  SERVICE: wealthwatch-api
+  DOCKER_IMAGE: ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/wealthwatch/${SERVICE}
+  BUCKET: ${GCP_PROJECT}-wealthwatch-data
+
+# ── Test ──────────────────────────────────────────────────────────────
+lint-and-test:
+  stage: test
+  image: python:3.12-slim
+  variables:
+    JWT_SECRET: ci-test-secret
+  before_script:
+    - pip install -r requirements-dev.txt
+  script:
+    - ruff format --check app/ tests/
+    - ruff check app/ tests/
+    - python -m py_compile app/main.py
+    - python -m py_compile app/config.py
+    - python -m py_compile app/database.py
+    - python -m py_compile app/auth.py
+    - for f in app/routers/*.py; do python -m py_compile "$f"; done
+    - python -m pytest tests/ -v --tb=short
+
+# ── Build & Push Docker Image ────────────────────────────────────────
+build-image:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+  only:
+    - main
+  before_script:
+    - echo "$GCP_SA_KEY" | docker login -u _json_key --password-stdin https://${GCP_REGION}-docker.pkg.dev
+  script:
+    - TAG="${DOCKER_IMAGE}:sha-${CI_COMMIT_SHORT_SHA}"
+    - docker build -t "$TAG" -t "${DOCKER_IMAGE}:latest" .
+    - docker push "$TAG"
+    - docker push "${DOCKER_IMAGE}:latest"
+    - echo "IMAGE_TAG=$TAG" > build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
+# ── Deploy to Cloud Run ──────────────────────────────────────────────
+deploy:
+  stage: deploy
+  image: google/cloud-sdk:slim
+  only:
+    - main
+  needs:
+    - build-image
+  environment:
+    name: production
+    url: https://${SERVICE}-${GCP_PROJECT}.a.run.app
+  before_script:
+    - echo "$GCP_SA_KEY" | gcloud auth activate-service-account --key-file=-
+    - gcloud config set project "$GCP_PROJECT"
+  script:
+    - |
+      gcloud run deploy "$SERVICE" \
+        --image="$IMAGE_TAG" \
+        --region="$GCP_REGION" \
+        --project="$GCP_PROJECT" \
+        --platform=managed \
+        --execution-environment=gen2 \
+        --allow-unauthenticated \
+        --port=8080 \
+        --cpu=1 \
+        --memory=512Mi \
+        --min-instances=0 \
+        --max-instances=1 \
+        --concurrency=80 \
+        --timeout=60 \
+        --cpu-boost \
+        --set-env-vars="\
+      ALLOWED_ORIGINS=${ALLOWED_ORIGINS},\
+      SQLITE_DB_PATH=/data/wealthwatch.db" \
+        --set-secrets="\
+      JWT_SECRET=wealthwatch-jwt-secret:latest,\
+      GOOGLE_CLIENT_ID=wealthwatch-google-client-id:latest" \
+        --add-volume=name=sqlite-data,type=cloud-storage,bucket="$BUCKET" \
+        --add-volume-mount=volume=sqlite-data,mount-path=/data
+    - |
+      URL=$(gcloud run services describe "$SERVICE" \
+        --region="$GCP_REGION" --project="$GCP_PROJECT" \
+        --format='value(status.url)')
+      echo "Deployed: $URL"
+      curl -sf "$URL/health" | python3 -m json.tool
