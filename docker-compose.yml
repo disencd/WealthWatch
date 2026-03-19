@@ -6,12 +6,12 @@ services:
     build: .
     container_name: wealthwatch-app
     ports:
-      - "8080:8080"
+      - "8075:8075"
     environment:
       - SQLITE_DB_PATH=/data/wealthwatch.db
       - JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
       - JWT_EXPIRES_IN=168h
-      - PORT=8080
+      - PORT=8075
     volumes:
       - sqlite_data:/data
     restart: unless-stopped

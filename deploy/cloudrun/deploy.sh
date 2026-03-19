@@ -38,7 +38,7 @@ gcloud run deploy "$SERVICE" \
   --platform=managed \
   --execution-environment=gen2 \
   --allow-unauthenticated \
-  --port=8080 \
+  --port=8075 \
   --cpu=1 \
   --memory=512Mi \
   --min-instances=0 \

@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     JWT_EXPIRES_IN: str = "168h"
     JWT_ALGORITHM: str = "HS256"
     GOOGLE_CLIENT_ID: str = ""
-    PORT: int = 8080
+    PORT: int = 8075
     ALLOWED_ORIGINS: str = ""
     K_SERVICE: str = ""
 

@@ -104,8 +104,8 @@ docker compose up --build
 ```
 
 This starts the FastAPI backend with SQLite and a Redis cache. Open:
-- **UI**: http://localhost:8080
-- **Swagger**: http://localhost:8080/docs
+- **UI**: http://localhost:8075
+- **Swagger**: http://localhost:8075/docs
 
 Data is persisted in a Docker volume (`sqlite_data`).
 
@@ -129,7 +129,7 @@ Data is persisted in a Docker volume (`sqlite_data`).
 
    ```bash
    pip install -r requirements.txt
-   uvicorn app.main:app --reload --port 8080
+   uvicorn app.main:app --reload --port 8075
    ```
 
 3. **Start the frontend** (separate terminal):
@@ -140,7 +140,7 @@ Data is persisted in a Docker volume (`sqlite_data`).
    npm run dev
    ```
 
-   The Vite dev server runs on http://localhost:5173 and proxies `/api` requests to the FastAPI backend on port 8080.
+   The Vite dev server runs on http://localhost:5173 and proxies `/api` requests to the FastAPI backend on port 8075.
 
 ### Running Tests
 
@@ -367,12 +367,12 @@ The application uses the following entities (auto-migrated on startup):
 
 ```bash
 # Register
-curl -X POST http://localhost:8080/api/v1/auth/register \
+curl -X POST http://localhost:8075/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"first_name":"Alice","last_name":"Smith","email":"alice@example.com","password":"secret123"}'
 
 # Login
-curl -X POST http://localhost:8080/api/v1/auth/login \
+curl -X POST http://localhost:8075/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"alice@example.com","password":"secret123"}'
 ```
@@ -380,7 +380,7 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 ### Add an Account
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/accounts \
+curl -X POST http://localhost:8075/api/v1/accounts \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"institution_name":"Chase","account_name":"Checking","account_type":"checking","ownership":"ours","balance":5200.00}'
@@ -389,7 +389,7 @@ curl -X POST http://localhost:8080/api/v1/accounts \
 ### Take a Net Worth Snapshot
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/networth/snapshot \
+curl -X POST http://localhost:8075/api/v1/networth/snapshot \
   -H "Authorization: Bearer <token>"
 ```
 

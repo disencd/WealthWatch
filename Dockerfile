@@ -44,10 +44,10 @@ USER appuser
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV SQLITE_DB_PATH=/data/wealthwatch.db
-EXPOSE 8080
+EXPOSE 8075
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+    CMD curl -f http://localhost:8075/health || exit 1
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8075"]
