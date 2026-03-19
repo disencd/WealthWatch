@@ -118,7 +118,7 @@ Data is persisted in a Docker volume (`sqlite_data`).
    ```bash
    # Backend (.env in project root)
    JWT_SECRET=your_super_secret_jwt_key_here
-   SQLITE_DB_PATH=wealthwatch.db
+   SQLITE_DB_PATH=db/wealthwatch.db
    GOOGLE_CLIENT_ID=your_google_oauth_client_id  # optional, enables Google Sign-In
 
    # Frontend (frontend/.env)

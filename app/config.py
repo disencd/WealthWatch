@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # SQLite database file path (on Cloud Run, mounted via GCS FUSE at /data)
-    SQLITE_DB_PATH: str = "wealthwatch.db"
+    SQLITE_DB_PATH: str = "db/wealthwatch.db"
 
     JWT_SECRET: str = ""
     JWT_EXPIRES_IN: str = "168h"

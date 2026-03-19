@@ -38,7 +38,3 @@ frontend/.wrangler/
 frontend/vite.config.js.timestamp-*
 frontend/vite.config.ts.timestamp-*
 
-# SQLite
-wealthwatch.db
-wealthwatch.db-shm
-wealthwatch.db-wal

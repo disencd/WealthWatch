@@ -122,7 +122,7 @@ Nothing changes for local development:
 ```bash
 docker compose up --build            # full stack
 # or
-uvicorn app.main:app --reload        # backend only (SQLite at ./wealthwatch.db)
+uvicorn app.main:app --reload        # backend only (SQLite at ./db/wealthwatch.db)
 cd frontend && npm run dev           # frontend dev server with HMR
 ```
 
@@ -130,7 +130,7 @@ Create a `.env` file:
 
 ```env
 JWT_SECRET=dev-secret
-SQLITE_DB_PATH=wealthwatch.db
+SQLITE_DB_PATH=db/wealthwatch.db
 ```
 
 ---

@@ -20,7 +20,7 @@ def _clear_settings_cache():
 def _make(**overrides) -> Settings:
     """Build a Settings with sensible defaults, overridden by *overrides*."""
     defaults = dict(
-        SQLITE_DB_PATH="wealthwatch.db",
+        SQLITE_DB_PATH="db/wealthwatch.db",
         JWT_SECRET="secret",
         JWT_EXPIRES_IN="168h",
         ALLOWED_ORIGINS="",
@@ -38,7 +38,7 @@ def _make(**overrides) -> Settings:
 def test_database_url_default():
     _clear_settings_cache()
     s = _make()
-    assert s.database_url == "sqlite+aiosqlite:///wealthwatch.db"
+    assert s.database_url == "sqlite+aiosqlite:///db/wealthwatch.db"
 
 
 def test_database_url_custom_path():
