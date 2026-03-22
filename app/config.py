@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         if not self.ALLOWED_ORIGINS:
-            return ["*"] if not self.is_cloud_run else []
+            return ["*"]
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
 
     @property

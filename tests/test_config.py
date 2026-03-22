@@ -66,10 +66,10 @@ def test_cors_origins_default_dev():
 
 
 def test_cors_origins_default_cloud_run():
-    """Empty ALLOWED_ORIGINS + Cloud Run → [] (locked down)."""
+    """Empty ALLOWED_ORIGINS + Cloud Run → ["*"] (same as dev)."""
     _clear_settings_cache()
     s = _make(ALLOWED_ORIGINS="", K_SERVICE="my-service")
-    assert s.cors_origins == []
+    assert s.cors_origins == ["*"]
 
 
 def test_cors_origins_parsed_from_comma_string():
