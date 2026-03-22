@@ -2,10 +2,12 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_user
@@ -57,6 +59,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(IntegrityError)
+async def integrity_error_handler(request: Request, exc: IntegrityError):
+    """Catch FK violations from stale tokens after ephemeral DB reset."""
+    if "FOREIGN KEY" in str(exc):
+        return JSONResponse(status_code=401, content={"detail": "Session expired — please log in again"})
+    return JSONResponse(status_code=500, content={"detail": "Database error"})
+
 
 # Register routers
 app.include_router(auth.router)
