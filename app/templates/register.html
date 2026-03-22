@@ -53,11 +53,13 @@
                headers: { 'Content-Type': 'application/json' },
                body: JSON.stringify({ credential: response.credential })
              })
-               .then(r => r.json())
-               .then(data => {
-                 if (data.access_token) {
+               .then(r => r.json().then(data => ({ ok: r.ok, data })))
+               .then(({ ok, data }) => {
+                 if (ok && data.access_token) {
                    this.setAuth(data.access_token, data.user);
                    window.location.href = '/dashboard';
+                 } else {
+                   this.error = data.detail || 'Google sign-up failed';
                  }
                })
                .catch(e => { this.error = e.message; });
@@ -160,9 +162,13 @@
       <script>
         // Bridge the Google callback into the Alpine.js component scope
         function handleGoogleCallback(response) {
-          const el = document.querySelector('[x-data]');
-          if (el && el._x_dataStack) {
-            el._x_dataStack[0].handleGoogleCallback(response);
+          const els = document.querySelectorAll('[x-data]');
+          for (const el of els) {
+            const stack = el._x_dataStack;
+            if (stack && stack[0] && typeof stack[0].handleGoogleCallback === 'function') {
+              stack[0].handleGoogleCallback(response);
+              return;
+            }
           }
         }
       </script>
