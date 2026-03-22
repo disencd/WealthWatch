@@ -56,7 +56,8 @@
                .then(r => r.json().then(data => ({ ok: r.ok, data })))
                .then(({ ok, data }) => {
                  if (ok && data.access_token) {
-                   this.setAuth(data.access_token, data.user);
+                   localStorage.setItem('token', data.access_token);
+                   localStorage.setItem('user', JSON.stringify(data.user));
                    window.location.href = '/dashboard';
                  } else {
                    this.error = data.detail || 'Google sign-up failed';
