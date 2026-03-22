@@ -35,8 +35,14 @@ engine = _build_engine()
 @event.listens_for(engine.sync_engine, "connect")
 def _set_sqlite_pragmas(dbapi_conn, _connection_record):
     """Configure SQLite for production use."""
+    settings = get_settings()
     cursor = dbapi_conn.cursor()
-    cursor.execute("PRAGMA journal_mode=WAL")
+    # GCS FUSE doesn't support the random I/O patterns of WAL mode;
+    # use DELETE journal on Cloud Run, WAL locally for performance.
+    if settings.is_cloud_run:
+        cursor.execute("PRAGMA journal_mode=DELETE")
+    else:
+        cursor.execute("PRAGMA journal_mode=WAL")
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.execute("PRAGMA busy_timeout=5000")
     cursor.close()
